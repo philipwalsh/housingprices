@@ -94,7 +94,13 @@ def ScrubData(clean_me_df):
     clean_me_df.drop('SaleCondition', axis=1, inplace=True)
     clean_me_df.drop('GarageYrBlt', axis=1, inplace=True)
     clean_me_df.drop('MasVnrArea', axis=1, inplace=True)
-    
+    clean_me_df.drop('BsmtHalfBath', axis=1, inplace=True)
+    clean_me_df.drop('GarageArea', axis=1, inplace=True)
+    clean_me_df.drop('BsmtFinSF2', axis=1, inplace=True)    
+    clean_me_df.drop('BsmtUnfSF', axis=1, inplace=True)        
+    clean_me_df.drop('TotalBsmtSF', axis=1, inplace=True)
+    clean_me_df.drop('BsmtFullBath', axis=1, inplace=True)
+          
     return clean_me_df
 
 def CleanData(clean_me_df):
@@ -403,7 +409,7 @@ if bExplore:
     #plt.show()
 
     train_data.drop('Id', axis=1, inplace=True)
-    
+
     split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=9261774)
     for train_index, test_index in split.split(train_data, train_data['living_area_cat']):
         train_set = train_data.loc[train_index]
@@ -433,9 +439,6 @@ if bExplore:
 
     clean_df = train_set.copy()
     clean_df = CleanData(clean_df)
-    #print("\nlets try to find the new cleaned correlations, using the corr()")
-    #corr_matrix2 = clean_df.corr()
-    #print(corr_matrix2['SalePrice'].sort_values(ascending=False))
     
 
     #OverallQual+OverallCond
@@ -454,6 +457,11 @@ if bExplore:
 
     scrubbed_df = clean_df.copy()
     scrubbed_df = ScrubData(scrubbed_df)
+
+    print("\nlets try to find the new cleaned correlations, using the corr()")
+    corr_matrix2 = scrubbed_df.corr()
+    print(corr_matrix2['SalePrice'].sort_values(ascending=False))
+
     #print(scrubbed_df.dtypes)
     #print("\ngot any nas")
     #print(scrubbed_df.isna().any())
@@ -472,6 +480,7 @@ else:
     print('\nSkipping Explore\n')
 
     
+train_cols = ['OverallQual','GrLivArea','GC_3','1stFlrSF','FullBath','YearRemodAdd','TotRmsAbvGrd','Fireplaces','DECOLD_01','DECOLD_01']
 
 if bFit:
     print('saving scrubbed_df ...', sendtofile(excluded_dir,'scrubbed_df.csv',scrubbed_df))
@@ -480,30 +489,30 @@ if bFit:
     train_vars.drop('SalePrice', axis=1, inplace=True)
     train_labels = scrubbed_df['SalePrice']
     model_lin_reg = LinearRegression()
-    model_lin_reg.fit(train_vars, train_labels)
+    model_lin_reg.fit(train_vars[train_cols], train_labels)
 
     some_data = train_vars.iloc[:5]
     some_labels = train_labels.iloc[:5]
-    lin_reg_pred = model_lin_reg.predict(some_data)
+    lin_reg_pred = model_lin_reg.predict(some_data[train_cols])
     print("\nsome_labels")
     print(some_labels)
     print("\nlin_reg_pred")
     print(lin_reg_pred)
 
-    preds = model_lin_reg.predict(train_vars)
+    preds = model_lin_reg.predict(train_vars[train_cols])
     rmse_ = mean_squared_error(train_labels,preds )
     print('\nLinear Regression RMSE  :', rmse_)
 
 
     model_tree_reg = DecisionTreeRegressor()
-    tree_reg_pred = model_tree_reg.fit(train_vars, train_labels)
-    preds = model_tree_reg.predict(train_vars)
+    tree_reg_pred = model_tree_reg.fit(train_vars[train_cols], train_labels)
+    preds = model_tree_reg.predict(train_vars[train_cols])
     rmse_ = mean_squared_error(train_labels,preds )
     print('\nDecision Tree RMSE    :', rmse_)
 
     model_forrest_reg = RandomForestRegressor()
-    model_forrest_reg.fit(train_vars, train_labels)
-    preds = model_forrest_reg.predict(train_vars)
+    model_forrest_reg.fit(train_vars[train_cols], train_labels)
+    preds = model_forrest_reg.predict(train_vars[train_cols])
     rmse_ = mean_squared_error(train_labels,preds )
     print('\nRandom Forest RMSE    :', rmse_)
     
@@ -515,7 +524,7 @@ else:
 if bPredict:
     print('\nPredict ...\n')
     
-    submission_data = pd.read_csv("excluded/test.csv", low_memory=False)
+    submission_data = pd.read_csv("excluded/test_full.csv", low_memory=False)
     
     submission_y = submission_data[['Id']]
     #?
@@ -527,7 +536,9 @@ if bPredict:
     scrubbed_df = cleaned_df.copy()
     scrubbed_df = ScrubData(cleaned_df)
 
-    pred_y=model_lin_reg.predict(scrubbed_df)
+    #print("any nulls?")
+    #print(scrubbed_df.isna().any())
+    pred_y=model_lin_reg.predict(scrubbed_df[train_cols])
     pred_df=pd.DataFrame(pred_y, columns=['SalePrice'])
     submission_df = pd.concat([submission_y,pred_df], axis="columns", sort=False)
     print("saving submission_df ...", sendtofile(excluded_dir,"lin_reg_preds.csv",submission_df))
