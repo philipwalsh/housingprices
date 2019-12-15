@@ -2,9 +2,8 @@
 # pmcphilwalsh@gmail.com
 # this script is based off of make_predictions_2.py
 # goals for this script
-#  1) focus on linear regression
-#  2) properly evaluate the model ( look at preds, observed and residuals )
-#  3) tackle one hot encoding ( stretch goal )
+#  1) linear reg and random forest, ensembled
+#  2) one hot encode all the non numeric!
 
 import numpy as np
 import pandas as pd
@@ -242,10 +241,10 @@ if True:
     print('saving X_sub ...', sendtofile(excluded_dir,'submisison_data(cleaned).csv',X_sub))
 
     if True:
-        print('any nans?')
-        pd.set_option('display.max_rows', None)
-        print(X_sub.isna().any())
-        print(1/0)
+        #print('any nans?')
+        #pd.set_option('display.max_rows', None)
+        #print(X_sub.isna().any())
+        
         #get predictions
         pred_y_lr=model_lr.predict(X_sub[train_cols])
         #tack the saved labes (y's) onto the preds into a data frame
@@ -257,7 +256,7 @@ if True:
 
 
         #get predictions
-        pred_y_rf=model_rf.predict(sub_data[train_cols])
+        pred_y_rf=model_rf.predict(X_sub[train_cols])
         #tack the saved labes (y's) onto the preds into a data frame
         pred_rf=pd.DataFrame(pred_y_rf, columns=['SalePrice'])
         submission_rf = pd.concat([pred_id,pred_rf], axis="columns", sort=False)
@@ -289,3 +288,11 @@ print('*****')
 #kaggle score(current) :  0.14552 ****NEW BEST****
 
 
+
+#I fixed the dummy vars, no more hard coding
+#lm training score     :  0.9444626683808495
+#lm test score         :  0.8147995960417986
+#rf training score     :  0.9806779417137836
+#rf test score         :  0.831842299718887
+#kaggle best(previous) :  0.14552
+#kaggle score(current) :  0.14062 ****NEW BEST****
