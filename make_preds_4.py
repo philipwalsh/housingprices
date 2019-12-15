@@ -499,7 +499,7 @@ print(model_lr.get_params())
 model_lr.fit(X_train[train_cols], y_train)
 train_score_lm=model_lr.score(X_train[train_cols], y_train)
 
-model_rf = RandomForestRegressor(random_state=9261774)
+model_rf = RandomForestRegressor(random_state=9261774,max_features=30, n_estimators=121)
 print('model_rf Parameters currently in use:\n')
 print(model_rf.get_params())
 
@@ -576,41 +576,21 @@ print('*****')
 #kaggle score(current) :  0.14772 ****NEW BEST****
 
 
+#I did a grid search to tweak the random forest params
+#lm training score     :  0.8690424877980849
+#lm test score         :  0.7970224279145512
+#rf training score     :  0.9807162054493379
+#rf test score         :  0.82899356181101
+#kaggle best(previous) :  0.14772
+#kaggle score(current) :  0.14552 ****NEW BEST****
 
 
 
-
-pipe = Pipeline([('classifier' , RandomForestRegressor())])
-# pipe = Pipeline([('classifier', RandomForestClassifier())])
-
-# Create param grid.
-
-#param_grid = [
-#    {'classifier' : [LinearRegression()],
-#     'classifier__penalty' : ['l1', 'l2'],
-#    'classifier__C' : np.logspace(-4, 4, 20),
-#    'classifier__solver' : ['liblinear']},
-#    {'classifier' : [RandomForestRegressor()],
-#    'classifier__n_estimators' : list(range(10,101,10)),
-#    'classifier__max_features' : list(range(6,32,5))}
-#]
-
-param_grid = [
-    {'classifier' : [LogisticRegression()],
-     'classifier__penalty' : ['l1', 'l2'],
-    'classifier__C' : np.logspace(-4, 4, 20),
-    'classifier__solver' : ['liblinear']},
-    {'classifier' : [RandomForestRegressor()],
-    'classifier__n_estimators' : list(range(10,101,10)),
-    'classifier__max_features' : list(range(6,32,5))}
-]
-
-# Create grid search object
-
-clf = GridSearchCV(pipe, param_grid = param_grid, cv = 5, verbose=True, n_jobs=-1)
-
-# Fit on data
-
-best_clf = clf.fit(X_train, y_train)
-print(best_clf)
+if False:
+    param_grid = [{'n_estimators' : [79, 121, 100, 201], 'max_features' : [43,30, 19]}]
+    grid_search = GridSearchCV(model_rf, param_grid = param_grid, cv = 5, scoring='neg_mean_squared_error', return_train_score=True)
+    grid_search.fit(X_train[train_cols], y_train)
+    print("best features")
+    # Fit on data
+    print(grid_search.best_params_)
 

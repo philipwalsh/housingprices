@@ -12,5 +12,12 @@ working_dir=os.getcwd()
 excluded_dir = os.path.join(working_dir, 'excluded') # working_dir + '\excluded'
 
 
-train_data = pd.read_csv('excluded/train.csv', low_memory=False)
-print(train_data.columns[9])
+df = pd.read_csv('excluded/train.csv', low_memory=False)
+#print(train_data.columns[9])
+x = df.select_dtypes(include=np.object).columns.tolist()
+for n in x:
+    df1 = pd.get_dummies(df[n])
+    df = pd.concat([df,df1], axis=1)
+
+df.to_csv("excluded\\df_dummies_test.csv", index=False)
+
