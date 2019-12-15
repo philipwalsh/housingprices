@@ -1,7 +1,10 @@
-# this model as is, generated score of 0.16576 on 2019-12-15
-# it lacks one hot encoding, pipeline, ensemble techniques
 # phil walsh
 # pmcphilwalsh@gmail.com
+# this script is based off of make_predictions_2.py
+# goals for this script
+#  1) focus on linear regression
+#  2) properly evaluate the model ( look at preds, observed and residuals )
+#  3) tackle one hot encoding ( stretch goal )
 
 import numpy as np
 import pandas as pd
@@ -10,55 +13,29 @@ import matplotlib.pyplot as plt
 
 from os.path import isfile, join
 from scipy.stats import skew
-from sklearn.model_selection import train_test_split, StratifiedShuffleSplit
+from sklearn.model_selection import train_test_split, StratifiedShuffleSplit, GridSearchCV
 from sklearn.linear_model import LinearRegression
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
 
-
-bDisplaySettingsSaved = False
 bDataFull = True
 bExplore = True
 bFit = True
-bPredict = True
-
-display_max_rows = 15
-display_max_columns = 10
-display_width = 120
-display_max_colwidth = -1
-
-def display_settings_save():
-    bDisplaySettingsSaved = True
-    display_max_rows = pd.get_option('display.max_rows')
-    display_max_columns = pd.get_option('display.max_columns')
-    display_width = pd.get_option('display.width')
-    display_max_colwidth = pd.get_option('display.max_colwidth')
-
-def display_settings_restore():
-    pd.set_option('display.max_rows', display_max_rows)
-    pd.set_option('display.max_columns', display_max_columns)
-    pd.set_option('display.width', display_width)
-    pd.set_option('display.max_colwidth', display_max_colwidth)
-
-def display_settings_custom(mr, mc, w, mcw):
-    
-    if (not bDisplaySettingsSaved):
-        display_settings_save
-
-    pd.set_option('display.max_rows', mr)
-    pd.set_option('display.max_columns', mc)
-    pd.set_option('display.width', w)
-    pd.set_option('display.max_colwidth', mcw)
+bPredict = False
 
 
-#display_settings_custom(None, None, None, -1)
 working_dir=os.getcwd()
 excluded_dir = os.path.join(working_dir, 'excluded') # working_dir + '\excluded'
 
 
+print('\n\n*****')
+print('***** start of sript: make_preds_3.py')
+print('*****')
+print('\nworking dir   :', working_dir)
 def sendtofile(outdir, filename, df):
-    script_name="make_preds_2_"
+    script_name='make_preds_3_'
     out_file = os.path.join(outdir, script_name + filename) 
     df.to_csv(out_file, index=False)
     return out_file
@@ -116,21 +93,12 @@ def CleanData(clean_me_df):
     clean_me_df.drop('PoolQC', axis=1, inplace=True)
     clean_me_df.drop('Fence', axis=1, inplace=True)
 
-    temp_mean = clean_me_df["LotFrontage"].mean()
+    temp_mean = clean_me_df['LotFrontage'].mean()
     clean_me_df['LotFrontage'].fillna(temp_mean, inplace=True)
 
-    temp_mean = clean_me_df["GrLivArea"].mean()
+    temp_mean = clean_me_df['GrLivArea'].mean()
     clean_me_df['GrLivArea'].fillna(temp_mean, inplace=True)
-
-
     
-    #numeric_feats = clean_me_df.dtypes[clean_me_df.dtypes != "object"].index
-    #skewed_feats = clean_me_df[numeric_feats].apply(lambda x: skew(x.dropna())) #compute skewness
-    #skewed_feats =skewed_feats>0.75
-    #skewed_index = skewed_feats.index
-    #clean_me_df[skewed_index] = np.log1p(clean_me_df[skewed_index])
-
-    #'Norm', 'Feedr', 'PosN', 'Artery', 'RRAe', 'RRNn', 'RRAn', 'PosA','RRNe'
     clean_me_df.loc[(clean_me_df['Condition1'] == 'Norm'), 'C1_Norm'] = 1
     clean_me_df.loc[(clean_me_df['Condition1'] == 'Feedr'), 'C1_Feedr'] = 1
     clean_me_df.loc[(clean_me_df['Condition1'] == 'PosN'), 'C1_PosN'] = 1
@@ -369,193 +337,280 @@ def CleanData(clean_me_df):
 
 if bDataFull:
     print('\nLoading full dataset ...')
-    train_data = pd.read_csv("excluded/train_full.csv", low_memory=False)
+    train_data = pd.read_csv('excluded/train_full.csv', low_memory=False)
 else:
     print('\nLoading small dataset ...')
-    train_data = pd.read_csv("excluded/train.csv", low_memory=False)
+    train_data = pd.read_csv('excluded/train.csv', low_memory=False)
 
 
-if bExplore:
-
-    print('\nExplore...\n')
-    #print('\ntrain_data.describe()')
-    #print(train_data.describe())
-    #print('\ntrain_data.info()')
-    #print(train_data.info())
-    #print("\nobservations")
-    #print("we should drop ['Alley', 'MiscFeature', 'PoolQC'] due to too many nulls")
-    #print("not sure about Fence yet, i`m 'on the fence'")
-    
-    #plt.hist(train_data['LotFrontage'])
-    #plt.show()
 
 
-    #print("GarageQual value counts")
-    #print(train_data['GarageQual'].value_counts())
+#tweaking the bins didnt get me a better score.  it did get me a diff score, just a hair worse
+train_data['living_area_cat'] = pd.cut(
+    train_data['GrLivArea'], 
+    bins=[0, 1000, 1500, 2000, 2500, np.inf], 
+    #bins=[0, 1000, 1500, 2000, 2500, 3000, 4000, np.inf], slightly wors, by a tiny bit
+    labels=[1, 2, 3, 4, 5])
 
-    #print("Functional value counts")
-    #print(train_data['Functional'].value_counts())
+train_data.drop('Id', axis=1, inplace=True)
 
-
-    #print ('\n GrLivArea is most important thing for house prices, lets stratify the training data')
-    #plt.hist(train_data['GrLivArea'])
-    #plt.show()
-    
-    #print("\ntrain_data['GrLivArea'].describe()")
-    #print(train_data['GrLivArea'].describe())
-   
-    # looks like we can put the GrLivArea into bins
-    # 0, 1000, 2000 , 3000, 4000, 5000 , inf
-    train_data['living_area_cat'] = pd.cut(
-        train_data['GrLivArea'], 
-        bins=[0, 1000,1500,2000,2500, np.inf], 
-        labels=[1,2,3,4,5])
-    #plt.hist(train_data['living_area_cat'])
-    #plt.show()
-
-    train_data.drop('Id', axis=1, inplace=True)
-
-    split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=9261774)
-    for train_index, test_index in split.split(train_data, train_data['living_area_cat']):
-        train_set = train_data.loc[train_index]
-        test_set = train_data.loc[test_index]
+split = StratifiedShuffleSplit(n_splits=1, test_size=0.2, random_state=9261774)
+for train_index, test_index in split.split(train_data, train_data['living_area_cat']):
+    X_train = train_data.loc[train_index]
+    X_test = train_data.loc[test_index]
 
 
-    #print('\nbreakdown of the train set by category')
-    #print(train_set['living_area_cat'].value_counts()/len(train_set))
-    #print('\nbreakdown of the test set by category')
-    #print(test_set['living_area_cat'].value_counts()/len(test_set))
-    #print("now the holdout/test set is represntative of the training set with respect to gross living area stratified")
 
-    for set_ in (train_set, test_set, train_data):
-        set_.drop('living_area_cat', axis=1, inplace=True)
+y_train = X_train['SalePrice']
+y_test = X_test['SalePrice']
 
-    #print("\nlets try to find correlations, using the corr()")
-    #corr_matrix = train_data.corr()
-    #print(corr_matrix['SalePrice'].sort_values(ascending=False))
+X_train.drop('SalePrice', axis=1, inplace=True)
+X_test.drop('SalePrice', axis=1, inplace=True)
 
-    # of interest, 
-    # OverallQual, GrLivArea, GrageCars, GarageArea, TotalBsmtSF, 1stFlrSF, fullBath, TotalRmsAbvGrd, YearBuilt
 
-    #from pandas.plotting import scatter_matrix
-    #attribs = ['SalePrice', 'OverallQual', 'GrLivArea', 'GarageCars', 'GarageArea', 'TotalBsmtSF'] #, '1stFlrSF', 'FullBath', 'TotalRmsAbvGrd', 'YearBuilt']
-    #scatter_matrix(train_data[attribs])
-    #plt.show()
+for set_ in (X_train, X_test, train_data):
+    set_.drop('living_area_cat', axis=1, inplace=True)
 
-    clean_df = train_set.copy()
-    clean_df = CleanData(clean_df)
-    
 
-    #OverallQual+OverallCond
-    #from pandas.plotting import scatter_matrix
-    #attribs = ['SalePrice', 'OverallQual', 'GrLivArea', 'OverallCond'] #, '1stFlrSF', 'FullBath', 'TotalRmsAbvGrd', 'YearBuilt']
-    #scatter_matrix(clean_df[attribs])
-    #plt.show()
-    
+
+#clean it - fix missing data, encode the categories
+X_train = CleanData(X_train)
+print('saving cleaned X_train ...', sendtofile(excluded_dir,'X_train(claened).csv',X_train))
+#scrub it - remove the vars that havent been cleaned yet (categoricals and vars that contain missing data)
+X_train = ScrubData(X_train)
+print('saving scrubbed X_train ...', sendtofile(excluded_dir,'X_train(scrubbed).csv',X_train))
+
+#full set
+train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearRemodAdd', '1stFlrSF', 
+'2ndFlrSF', 'LowQualFinSF', 'GrLivArea', 'FullBath', 'HalfBath', 'BedroomAbvGr', 'KitchenAbvGr', 'TotRmsAbvGrd', 
+'Fireplaces', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 
+'MoSold', 'YrSold', 'C1_Norm', 'C1_Feedr', 'C1_PosN', 'C1_Artery', 'C1_RRAe', 'C1_RRNn', 'C1_RRAn', 'C1_PosA', 
+'C1_RRNe', 'NH_NAmes', 'NH_CollgCr', 'NH_OldTown', 'NH_Edwards', 'NH_Somerst', 'NH_Gilbert', 'NH_NridgHt', 
+'NH_Sawyer', 'NH_NWAmes', 'NH_SawyerW', 'NH_BrkSide', 'NH_Crawfor', 'NH_Mitchel', 'NH_NoRidge', 'NH_Timber', 
+'NH_IDOTRR', 'NH_ClearCr', 'NH_StoneBr', 'NH_SWISU', 'NH_MeadowV', 'NH_Blmngtn', 'NH_BrDale', 'NH_Veenker', 
+'NH_NPkVill', 'NH_Blueste', 'DECOLD_00', 'DECOLD_01', 'DECOLD_02', 'DECOLD_03', 'DECOLD_04', 'DECOLD_05', 
+'DECOLD_06', 'DECOLD_07', 'DECOLD_08', 'DECOLD_09', 'DECOLD_10', 'DECOLD_11', 'DECOLD_12', 'DECOLD_13', 
+'DECOLD_14', 'E_SBrkr', 'E_FuseF', 'E_FuseA', 'E_FuseP', 'E_Mix', 'GARQ_TA', 'GARQ_Fa', 'GARQ_Gd', 'GARQ_Po', 
+'GARQ_Ex', 'GARC_TA', 'GARC_Fa', 'GARC_Gd', 'GARC_Po', 'LOTS_Reg', 'LOTS_IR1', 'LOTS_IR2', 'LOTS_IR3', 'LC_Lvl', 
+'LC_Bnk', 'LC_HLS', 'LC_Low', 'LCFG_Inside', 'LCFG_Corner', 'LCFG_CulDSac', 'LCFG_FR2', 'LCFG_FR3', 'LS_Gtl', 
+'LS_Mod', 'LS_Sev', 'GC_1', 'GC_2', 'GC_3', 'GC_4', 'GC_5', 'MSZ_RL', 'MSZ_RM', 'MSZ_C', 'MSZ_FV', 'MSZ_RH']
+
+
+# removed GC_5 and E_Mix
+train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearRemodAdd', '1stFlrSF', 
+'2ndFlrSF', 'LowQualFinSF', 'GrLivArea', 'FullBath', 'HalfBath', 'BedroomAbvGr', 'KitchenAbvGr', 'TotRmsAbvGrd', 
+'Fireplaces', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 
+'MoSold', 'YrSold', 'C1_Norm', 'C1_Feedr', 'C1_PosN', 'C1_Artery', 'C1_RRAe', 'C1_RRNn', 'C1_RRAn', 'C1_PosA', 
+'C1_RRNe', 'NH_NAmes', 'NH_CollgCr', 'NH_OldTown', 'NH_Edwards', 'NH_Somerst', 'NH_Gilbert', 'NH_NridgHt', 
+'NH_Sawyer', 'NH_NWAmes', 'NH_SawyerW', 'NH_BrkSide', 'NH_Crawfor', 'NH_Mitchel', 'NH_NoRidge', 'NH_Timber', 
+'NH_IDOTRR', 'NH_ClearCr', 'NH_StoneBr', 'NH_SWISU', 'NH_MeadowV', 'NH_Blmngtn', 'NH_BrDale', 'NH_Veenker', 
+'NH_NPkVill', 'NH_Blueste', 'DECOLD_00', 'DECOLD_01', 'DECOLD_02', 'DECOLD_03', 'DECOLD_04', 'DECOLD_05', 
+'DECOLD_06', 'DECOLD_07', 'DECOLD_08', 'DECOLD_09', 'DECOLD_10', 'DECOLD_11', 'DECOLD_12', 'DECOLD_13', 
+'DECOLD_14', 'E_SBrkr', 'E_FuseF', 'E_FuseA', 'E_FuseP', 'GARQ_TA', 'GARQ_Fa', 'GARQ_Gd', 'GARQ_Po', 
+'GARQ_Ex', 'GARC_TA', 'GARC_Fa', 'GARC_Gd', 'GARC_Po', 'LOTS_Reg', 'LOTS_IR1', 'LOTS_IR2', 'LOTS_IR3', 'LC_Lvl', 
+'LC_Bnk', 'LC_HLS', 'LC_Low', 'LCFG_Inside', 'LCFG_Corner', 'LCFG_CulDSac', 'LCFG_FR2', 'LCFG_FR3', 'LS_Gtl', 
+'LS_Mod', 'LS_Sev', 'GC_1', 'GC_2', 'GC_3', 'GC_4', 'MSZ_RL', 'MSZ_RM', 'MSZ_C', 'MSZ_FV', 'MSZ_RH']
+
+
+# check correlations
+if False:
+    corr_cols = train_cols.copy()
+    corr_cols.append('SalePrice')
+    max_rows = pd.get_option('display.max_rows')
+    train_data = CleanData(train_data)
+    train_data = ScrubData(train_data)
     pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', -1)
-    df_desc = pd.DataFrame(clean_df.describe())
-    print('saving clean_df_desc ...', sendtofile(excluded_dir,'clean_df_desc.csv',df_desc))
-
-
-    scrubbed_df = clean_df.copy()
-    scrubbed_df = ScrubData(scrubbed_df)
-
-    print("\nlets try to find the new cleaned correlations, using the corr()")
-    corr_matrix2 = scrubbed_df.corr()
+    print("\nlets try to find the current correaltions")
+    corr_matrix2 = train_data[corr_cols].corr()
     print(corr_matrix2['SalePrice'].sort_values(ascending=False))
+    pd.set_option('display.max_rows', max_rows)
 
-    #print(scrubbed_df.dtypes)
-    #print("\ngot any nas")
-    #print(scrubbed_df.isna().any())
+    # positive correlation
+    # OverallQual|GrLivArea|GC_3|1stFlrSF|FullBath|TotRmsAbvGrd|YearRemodAdd|Fireplaces|DECOLD_01|NH_NridgHt|LotFrontage|NH_NoRidge|WoodDeckSF
+    # negative correlation
+    # OverallQual|GrLivArea|GC_3|1stFlrSF|FullBath|TotRmsAbvGrd|YearRemodAdd|Fireplaces|DECOLD_01|NH_NridgHt|LotFrontage|NH_NoRidge|WoodDeckSF
+    # GC_1|MSZ_RM|LOTS_Reg|E_FuseA|DECOLD_09|NH_OldTown|NH_NAmes|DECOLD_06
 
-    #submission_data = pd.read_csv("excluded/test.csv", low_memory=False)
-    #print(submission_data["YearBuilt"].describe())
-    # 1910 - 2006
+    # lets try just positive
+    train_cols = ['OverallQual', 'GrLivArea', 'GC_3', '1stFlrSF', 'FullBath', 'TotRmsAbvGrd', 'YearRemodAdd', 'Fireplaces', 'DECOLD_01', 'NH_NridgHt', 'LotFrontage', 'NH_NoRidge', 'WoodDeckSF']
+    #training score     :  0.8124677506796857
+    #test score         :  0.7649712400989457
+    #kaggle score       :  0.18317 :(
+    #kaggle best        :  0.16576
+    # lets try positive and negative
+    train_cols = ['OverallQual', 'GrLivArea', 'GC_3', '1stFlrSF', 'FullBath', 'TotRmsAbvGrd', 'YearRemodAdd', 'Fireplaces', 'DECOLD_01', 'NH_NridgHt', 'LotFrontage', 'NH_NoRidge', 'WoodDeckSF','GC_1', 'MSZ_RM', 'LOTS_Reg', 'E_FuseA', 'DECOLD_09', 'NH_OldTown', 'NH_NAmes', 'DECOLD_06']
+    #training score     :  0.8229924404888985
+    #test score         :  0.767898780925574
+    #kaggle score       :  0.43765 :(:(  WTF!!!?
+    #kaggle best        :  0.16576
 
-    #print("\ngarage qual")
-    #print(clean_df['GarageQual'].describe())
-
-#nas
 
 
-else:
-    print('\nSkipping Explore\n')
 
+#train_cols = ['GrLivArea','1stFlrSF','LotArea','MoSold','YearRemodAdd','YrSold','LotFrontage','OpenPorchSF','WoodDeckSF','TotRmsAbvGrd','OverallQual','2ndFlrSF','BedroomAbvGr','OverallCond','MSSubClass']
+
+
+
+if False:
+    ## check with lasso, and see what it recommends as the importance
+    from sklearn.datasets import make_classification
+    from sklearn.ensemble import ExtraTreesClassifier
+    # Build a forest and compute the feature importances
+    forest = ExtraTreesClassifier(n_estimators=250,
+                                random_state=0)
+
+    forest.fit(X_train[train_cols], y_train)
+    importances = forest.feature_importances_
+    std = np.std([tree.feature_importances_ for tree in forest.estimators_],
+                axis=0)
+    indices = np.argsort(importances)[::-1]
+
+    # Print the feature ranking
+    print("Feature ranking:")
+
+    for f in range(X_train.shape[1]):
+        print("%d. feature %s (%f)" % (f + 1, X_train.columns[indices[f]], importances[indices[f]]))
+
+    # Plot the feature importances of the forest
+    plt.figure()
+    plt.title("Feature importances")
+    plt.bar(range(X_train.shape[1]), importances[indices],
+        color="r", yerr=std[indices], align="center")
+    plt.xticks(range(X_train.shape[1]), indices)
+    plt.xlim([-1, X_train.shape[1]])
+    plt.show()
+
+
+
+
+
+
+#normalize=False
+#lm training score     :  0.8690424877980849
+#lm test score         :  0.7970224279145512
+#rf training score     :  0.9700308018508477
+#rf test score         :  0.7802256471579926
+#normalize=True
+
+model_lr = LinearRegression(normalize=False)
+print('model_lr Parameters currently in use:\n')
+print(model_lr.get_params())
+
+model_lr.fit(X_train[train_cols], y_train)
+train_score_lm=model_lr.score(X_train[train_cols], y_train)
+
+model_rf = RandomForestRegressor(random_state=9261774)
+print('model_rf Parameters currently in use:\n')
+print(model_rf.get_params())
+
+
+model_rf.fit(X_train[train_cols], y_train)
+train_score_rf=model_rf.score(X_train[train_cols], y_train)
     
-train_cols = ['OverallQual','GrLivArea','GC_3','1stFlrSF','FullBath','YearRemodAdd','TotRmsAbvGrd','Fireplaces','DECOLD_01','DECOLD_01']
-
-if bFit:
-    print('saving scrubbed_df ...', sendtofile(excluded_dir,'scrubbed_df.csv',scrubbed_df))
-
-    train_vars = scrubbed_df.copy()
-    train_vars.drop('SalePrice', axis=1, inplace=True)
-    train_labels = scrubbed_df['SalePrice']
-    model_lin_reg = LinearRegression()
-    #model_lin_reg.fit(train_vars[train_cols], train_labels)
-    model_lin_reg.fit(train_vars, train_labels)
-
-    some_data = train_vars.iloc[:5]
-    some_labels = train_labels.iloc[:5]
-    #lin_reg_pred = model_lin_reg.predict(some_data[train_cols])
-    lin_reg_pred = model_lin_reg.predict(some_data)
-    print("\nsome_labels")
-    print(some_labels)
-    print("\nlin_reg_pred")
-    print(lin_reg_pred)
-
-    #preds = model_lin_reg.predict(train_vars[train_cols])
-    preds = model_lin_reg.predict(train_vars)
-    rmse_ = mean_squared_error(train_labels,preds )
-    print('\nLinear Regression RMSE  :', rmse_)
 
 
-    model_tree_reg = DecisionTreeRegressor()
-    #tree_reg_pred = model_tree_reg.fit(train_vars[train_cols], train_labels)
-    tree_reg_pred = model_tree_reg.fit(train_vars, train_labels)
-    #preds = model_tree_reg.predict(train_vars[train_cols])
-    preds = model_tree_reg.predict(train_vars)
-    rmse_ = mean_squared_error(train_labels,preds )
-    print('\nDecision Tree RMSE    :', rmse_)
 
-    model_forrest_reg = RandomForestRegressor()
-    #model_forrest_reg.fit(train_vars[train_cols], train_labels)
-    model_forrest_reg.fit(train_vars, train_labels)
-    #preds = model_forrest_reg.predict(train_vars[train_cols])
-    preds = model_forrest_reg.predict(train_vars)
-    rmse_ = mean_squared_error(train_labels,preds )
-    print('\nRandom Forest RMSE    :', rmse_)
-    
+#clean it - fix missing data, encode the categories
+X_test = CleanData(X_test)
+print('saving cleaned X_test ...', sendtofile(excluded_dir,'X_test(claened).csv',X_test))
+#scrub it - remove the vars that havent been cleaned yet (categoricals and vars that contain missing data)
+X_test = ScrubData(X_test)
+print('saving scrubbed X_test ...', sendtofile(excluded_dir,'X_test(scrubbed).csv',X_test))
+
+test_score_lm=model_lr.score(X_test[train_cols], y_test)
+test_score_rf=model_rf.score(X_test[train_cols], y_test)
 
 
-else:
-    print('\nSkipping Fit\n')
+print('lm training score     : ', train_score_lm)
+print('lm test score         : ', test_score_lm)
 
-if bPredict:
-    print('\nPredict ...\n')
-    
-    submission_data = pd.read_csv("excluded/test_full.csv", low_memory=False)
-    
-    submission_y = submission_data[['Id']]
-    #?
-    submission_data.drop("Id", axis="columns", inplace=True)
-    #?
+print('rf training score     : ', train_score_rf)
+print('rf test score         : ', test_score_rf)
 
-    cleaned_df = submission_data.copy()
-    cleaned_df = CleanData(cleaned_df)
-    scrubbed_df = cleaned_df.copy()
-    scrubbed_df = ScrubData(cleaned_df)
+#happy with above score, create a submission
+#load the test data
+sub_data = pd.read_csv("excluded/test_full.csv", low_memory=False)
 
-    #print("any nulls?")
-    #print(scrubbed_df.isna().any())
-    #pred_y=model_lin_reg.predict(scrubbed_df[train_cols])
-    pred_y=model_lin_reg.predict(scrubbed_df)
-    pred_df=pd.DataFrame(pred_y, columns=['SalePrice'])
-    submission_df = pd.concat([submission_y,pred_df], axis="columns", sort=False)
-    print("saving submission_df ...", sendtofile(excluded_dir,"lin_reg_preds.csv",submission_df))
+#set up the submission ids, will be used later in a full submission dataframe
+pred_id = sub_data[['Id']]
 
-else:
-    print('\nSkipping predict\n')
+#remove Id from the independent variables
+sub_data.drop("Id", axis="columns", inplace=True)
+
+#clean it
+sub_data = CleanData(sub_data)
+#scrub it
+sub_data = ScrubData(sub_data)
+
+#get predictions
+pred_y_lr=model_lr.predict(sub_data[train_cols])
+#tack the saved labes (y's) onto the preds into a data frame
+pred_lr=pd.DataFrame(pred_y_lr, columns=['SalePrice'])
+submission_lr = pd.concat([pred_id,pred_lr], axis="columns", sort=False)
+
+print("saving submission_lr ...", sendtofile(excluded_dir,"predictions_lr.csv",submission_lr))
+
+
+
+#get predictions
+pred_y_rf=model_rf.predict(sub_data[train_cols])
+#tack the saved labes (y's) onto the preds into a data frame
+pred_rf=pd.DataFrame(pred_y_rf, columns=['SalePrice'])
+submission_rf = pd.concat([pred_id,pred_rf], axis="columns", sort=False)
+
+print("saving submission_rf ...", sendtofile(excluded_dir,"predictions_rf.csv",submission_rf))
+
+
+print('\n\n*****')
+print('***** end of sript: make_preds_3.py')
+print('*****')
+
+
+#random forest alone got me to a kaggle score of 0.16853
+#Ensembled this time, averaged te linear with he random forest
+#lm training score     :  0.8690424877980849
+#lm test score         :  0.7970224279145512
+#rf training score     :  0.9718557949492583
+#rf test score         :  0.7918664368953635
+#kaggle best(previous) :  0.16576
+#kaggle score(current) :  0.14772 ****NEW BEST****
+
+
+
+
+
+
+pipe = Pipeline([('classifier' , RandomForestRegressor())])
+# pipe = Pipeline([('classifier', RandomForestClassifier())])
+
+# Create param grid.
+
+#param_grid = [
+#    {'classifier' : [LinearRegression()],
+#     'classifier__penalty' : ['l1', 'l2'],
+#    'classifier__C' : np.logspace(-4, 4, 20),
+#    'classifier__solver' : ['liblinear']},
+#    {'classifier' : [RandomForestRegressor()],
+#    'classifier__n_estimators' : list(range(10,101,10)),
+#    'classifier__max_features' : list(range(6,32,5))}
+#]
+
+param_grid = [
+    {'classifier' : [LogisticRegression()],
+     'classifier__penalty' : ['l1', 'l2'],
+    'classifier__C' : np.logspace(-4, 4, 20),
+    'classifier__solver' : ['liblinear']},
+    {'classifier' : [RandomForestRegressor()],
+    'classifier__n_estimators' : list(range(10,101,10)),
+    'classifier__max_features' : list(range(6,32,5))}
+]
+
+# Create grid search object
+
+clf = GridSearchCV(pipe, param_grid = param_grid, cv = 5, verbose=True, n_jobs=-1)
+
+# Fit on data
+
+best_clf = clf.fit(X_train, y_train)
+print(best_clf)
 
