@@ -23,9 +23,6 @@ from sklearn.linear_model import LogisticRegression
 
 bVerbose = False
 
-LotFrontage_mean = -1
-GrvLivArea_mean = -1
-YearBullt_mean = -1
 
 
 
@@ -55,26 +52,45 @@ def sendtofile(outdir, filename, df, verbose=False):
 def get_decade(in_val):
     return int(in_val / 10) * 10
 
-def CleanData(clean_me_df,LotFrontage_mean,GrvLivArea_mean,YearBullt_mean):
+def CleanData(clean_me_df):
 
 
     clean_me_df.drop('Id', axis=1, inplace=True)
-    if LotFrontage_mean < 0:
-        LotFrontage_mean = clean_me_df['LotFrontage'].mean()
+    LotFrontage_mean = 0
+    LotFrontage_mean = clean_me_df['LotFrontage'].mean()
     clean_me_df['LotFrontage'].fillna(LotFrontage_mean, inplace=True)
 
-    if GrvLivArea_mean < 0:
-        GrvLivArea_mean = clean_me_df['GrLivArea'].mean()
+    GrvLivArea_mean = 0
+    GrvLivArea_mean = clean_me_df['GrLivArea'].mean()
     clean_me_df['GrLivArea'].fillna(GrvLivArea_mean, inplace=True)
     
+    
 
-    if YearBullt_mean<0:
-        YearBullt_mean = clean_me_df['YearBuilt'].mean()
+    YearBullt_mean=0
+    YearBullt_mean = clean_me_df['YearBuilt'].mean()
     clean_me_df['YearBuilt'].fillna(YearBullt_mean, inplace=True)    
     clean_me_df['YearDecade'] = clean_me_df['YearBuilt'].astype(int).map(lambda x: get_decade(x))
-    clean_me_df['DecadesOld'] = 2010 - clean_me_df['YearDecade']
+    clean_me_df['DecadesOld'] = 200-(2010 - clean_me_df['YearDecade'])
     clean_me_df.drop('YearBuilt', axis=1, inplace=True)
-    clean_me_df.drop('DecadesOld', axis=1, inplace=True)    
+    clean_me_df.drop('YearDecade', axis=1, inplace=True)    
+
+    YearRemodAdd_mean=0
+    YearRemodAdd_mean = clean_me_df['YearRemodAdd'].mean()
+    clean_me_df['YearRemodAdd'].fillna(YearRemodAdd_mean, inplace=True)    
+    clean_me_df['YearRemodAddDecade'] = clean_me_df['YearRemodAdd'].astype(int).map(lambda x: get_decade(x))
+    clean_me_df['YearRemodAddDecOld'] = 200-(2010 - clean_me_df['YearRemodAddDecade'])
+    clean_me_df.drop('YearRemodAdd', axis=1, inplace=True)
+    clean_me_df.drop('YearRemodAddDecade', axis=1, inplace=True)    
+    
+    GarageYrBlt_mean=0
+    GarageYrBlt_mean = clean_me_df['GarageYrBlt'].mean()
+    clean_me_df['GarageYrBlt'].fillna(GarageYrBlt_mean, inplace=True)    
+    clean_me_df['GarageYrBltDecade'] = clean_me_df['GarageYrBlt'].astype(int).map(lambda x: get_decade(x))
+    clean_me_df['GarageYrBltDecOld'] = 200-(2010 - clean_me_df['GarageYrBltDecade'])
+    clean_me_df.drop('GarageYrBlt', axis=1, inplace=True)
+    clean_me_df.drop('GarageYrBltDecade', axis=1, inplace=True)    
+    
+
     
     
     clean_me_df['Condition1'].fillna('Norm', inplace=True)
@@ -86,7 +102,6 @@ def CleanData(clean_me_df,LotFrontage_mean,GrvLivArea_mean,YearBullt_mean):
     clean_me_df['LandContour'].fillna('Lvl', inplace=True) 
     clean_me_df['LotConfig'].fillna('Inside', inplace=True)
     clean_me_df['LandSlope'].fillna('Gtl', inplace=True)
-    clean_me_df['GarageYrBlt'].fillna(0, inplace=True)
     clean_me_df['GarageCars'].fillna(0, inplace=True)
     clean_me_df['GarageArea'].fillna(0, inplace=True)
     clean_me_df['BsmtHalfBath'].fillna(0, inplace=True)
@@ -108,8 +123,19 @@ def CleanData(clean_me_df,LotFrontage_mean,GrvLivArea_mean,YearBullt_mean):
     for n in x:
         clean_me_df.drop(n,axis=1, inplace=True)
 
+    # engineered features
+    # total bathroom count
+    # BsmtFullBath + BsmtHalfBath * .5 + FullBath + HalfBath
+    # pricer per bathroom
+    # cleanme['GLVPerBath']=clean_me_df['GrLivArea']/BathroomCount
+    #YearRemodAdd
+    #GarageYrBlt
+
     
-    return clean_me_df,LotFrontage_mean,GrvLivArea_mean,YearBullt_mean
+
+
+
+    return clean_me_df
 
 
 
@@ -169,7 +195,8 @@ combined=pd.concat([X_train, X_test, sub_data])
 #####
 
 # this will do the heavy lifting removing NaN(s), dropping columns, one hot encoding and feature engineering
-combined, LotFrontage_mean, GrvLivArea_mean, YearBullt_mean = CleanData(combined,LotFrontage_mean,GrvLivArea_mean,YearBullt_mean)
+combined = CleanData(combined)
+sendtofile(excluded_dir, 'combined.csv', combined, verbose=True)
 
 #####
 ##### Put the data apart into the proper data frames. Train, Test (aka holdout) and Submission
@@ -178,6 +205,7 @@ combined, LotFrontage_mean, GrvLivArea_mean, YearBullt_mean = CleanData(combined
 # train - use to fit models
 X_train = combined[combined['TRAIN']==1].copy()
 X_train.drop('TRAIN', axis=1, inplace=True)
+
 
 # test - use to evaluate model performance
 X_test = combined[combined['TRAIN']==0].copy()
@@ -188,10 +216,10 @@ X_sub = combined[combined['TRAIN']==-1].copy()
 X_sub.drop('TRAIN', axis=1, inplace=True)
 
 #all cols
-train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearRemodAdd', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 
+train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 
 'BsmtUnfSF', 'TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'LowQualFinSF', 'GrLivArea', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath', 
-'BedroomAbvGr', 'KitchenAbvGr', 'TotRmsAbvGrd', 'Fireplaces', 'GarageYrBlt', 'GarageCars', 'GarageArea', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', 
-'3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold', 'YearDecade', 'MSZoning_C (all)', 'MSZoning_FV', 'MSZoning_RH', 'MSZoning_RL', 
+'BedroomAbvGr', 'KitchenAbvGr', 'TotRmsAbvGrd', 'Fireplaces', 'GarageCars', 'GarageArea', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', 
+'3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold', 'MSZoning_C (all)', 'MSZoning_FV', 'MSZoning_RH', 'MSZoning_RL', 
 'MSZoning_RM', 'Street_Grvl', 'Street_Pave', 'Alley_Grvl', 'Alley_Pave', 'LotShape_IR1', 'LotShape_IR2', 'LotShape_IR3', 'LotShape_Reg', 
 'LandContour_Bnk', 'LandContour_HLS', 'LandContour_Low', 'LandContour_Lvl', 'Utilities_AllPub', 'Utilities_NoSeWa', 'LotConfig_Corner', 'LotConfig_CulDSac', 
 'LotConfig_FR2', 'LotConfig_FR3', 'LotConfig_Inside', 'LandSlope_Gtl', 'LandSlope_Mod', 'LandSlope_Sev', 'Neighborhood_Blmngtn', 'Neighborhood_Blueste', 
@@ -223,7 +251,7 @@ train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCon
 'PavedDrive_P', 'PavedDrive_Y', 'PoolQC_Ex', 'PoolQC_Fa', 'PoolQC_Gd', 'Fence_GdPrv', 'Fence_GdWo', 'Fence_MnPrv', 'Fence_MnWw', 'MiscFeature_Gar2', 
 'MiscFeature_Othr', 'MiscFeature_Shed', 'MiscFeature_TenC', 'SaleType_COD', 'SaleType_CWD', 'SaleType_Con', 'SaleType_ConLD', 'SaleType_ConLI', 'SaleType_ConLw', 
 'SaleType_New', 'SaleType_Oth', 'SaleType_WD', 'SaleCondition_Abnorml', 'SaleCondition_AdjLand', 'SaleCondition_Alloca', 'SaleCondition_Family', 
-'SaleCondition_Normal', 'SaleCondition_Partial']
+'SaleCondition_Normal', 'SaleCondition_Partial']#,'DecadesOld','YearRemodAddDecOld','GarageYrBltDecOld']
 
 
 # I should probably cull down the vars, and do some feature engineering, WIP
@@ -233,11 +261,23 @@ train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCon
 ##### FIT THE MODELS
 #####
 
+
+
+
+sendtofile(excluded_dir,"X_train.csv",X_train[train_cols], verbose=True)
+sendtofile(excluded_dir,"y_train.csv",pd.DataFrame(y_train), verbose=True)
+sendtofile(excluded_dir,"X_test.csv",X_test[train_cols], verbose=True)
+sendtofile(excluded_dir,"y_test.csv",pd.DataFrame(y_test), verbose=True)
+
+
 # Linear Regression
 model_lr = LinearRegression(normalize=False)
 if False:
     print('model_lr Parameters currently in use:\n')
     print(model_lr.get_params())
+
+
+
 
 model_lr.fit(X_train[train_cols], y_train)
 train_score_lm=model_lr.score(X_train[train_cols], y_train)
@@ -266,7 +306,7 @@ print('rf test score         : ', test_score_rf)
 #####
 ##### Create Submission
 #####
-if False:
+if True:
 
     #Linear Regression
     pred_id = sub_data[['Id']]
@@ -275,19 +315,34 @@ if False:
     # tack the saved labes (y's) onto the preds into a data frame
     pred_lr=pd.DataFrame(pred_y_lr, columns=['SalePrice'])
     submission_lr = pd.concat([submission_id,pred_lr], axis='columns', sort=False)
-    print('saving submission_lr ...', sendtofile(excluded_dir,'predictions_lr.csv',submission_lr))
+    sendtofile(excluded_dir,'predictions_lr.csv',submission_lr, verbose=True)
 
     #get predictions
     pred_y_rf=model_rf.predict(X_sub[train_cols])
     #tack the saved labes (y's) onto the preds into a data frame
     pred_rf=pd.DataFrame(pred_y_rf, columns=['SalePrice'])
-    submission_rf = pd.concat([pred_id,pred_rf], axis='columns', sort=False)
+    submission_rf = pd.concat([submission_id,pred_rf], axis='columns', sort=False)
+    sendtofile(excluded_dir,'predictions_rf.csv',submission_rf, verbose=True)
 
-    print('saving submission_rf ...', sendtofile(excluded_dir,'predictions_rf.csv',submission_rf))
+    
+    submission_lr_rf = pd.concat([submission_lr,pred_rf], axis='columns', sort=False)
+    submission_lr_rf.columns=['Id','SalePrice_LR', 'SalePrice_RF']
+    submission_lr_rf['SalePrice']=(submission_lr_rf['SalePrice_LR']+submission_lr_rf['SalePrice_RF'])/2
+    submission_lr_rf.drop('SalePrice_LR', axis=1, inplace=True)
+    submission_lr_rf.drop('SalePrice_RF', axis=1, inplace=True)
+    sendtofile(excluded_dir,'predictions_lr_rf.csv',submission_lr_rf, verbose=True)
 
+
+
+    #create the ensemble, simple avg of linear and rf
 
 print('\n\n*****')
 print('***** end of sript: make_preds_3.py')
 print('*****')
 
-
+# 2019-12-16 after removing year built, remodel year and garage year built
+# lm training score     :  0.9432573451774633
+# lm test score         :  0.8136472479742833
+# rf training score     :  0.981845737882965
+# rf test score         :  0.8338866779653443
+# kaggel score         :
