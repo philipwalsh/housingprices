@@ -1,10 +1,8 @@
 # phil walsh
 # pmcphilwalsh@gmail.com
 # this script is based off of make_predictions_2.py
-# goals for this script
-#  1) linear reg and random forest, ensembled
-#  2) one hot encode all the non numeric!
 
+# 2019-12-16
 import numpy as np
 import pandas as pd
 import os
@@ -12,12 +10,10 @@ import matplotlib.pyplot as plt
 
 from os.path import isfile, join
 from scipy.stats import skew
-from sklearn.model_selection import train_test_split, StratifiedShuffleSplit, GridSearchCV
+from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.model_selection import GridSearchCV
 
 
 
@@ -297,11 +293,65 @@ test_score_lm=model_lr.score(X_test[train_cols], y_test)
 test_score_rf=model_rf.score(X_test[train_cols], y_test)
 
 
+
+
+
 print('lm training score     : ', train_score_lm)
 print('lm test score         : ', test_score_lm)
 
 print('rf training score     : ', train_score_rf)
 print('rf test score         : ', test_score_rf)
+
+
+#set to True if you want to play with optimization
+# set to False when ready to run
+if False:
+    param_grid={
+        'n_estimators':[301, 279], 
+        'learning_rate': [0.05, 0.025],# , 0.01],
+        'max_depth':[3, 4, 5], 
+        'min_samples_leaf':[5],#9,17], 
+        'max_features':[0.25] 
+        } 
+    n_jobs=-1 
+
+
+    #print("Feature Importances")
+    #print (model_gb.feature_importances_) 
+    estimator = GradientBoostingRegressor(random_state=9261774) 
+    # cv = ShuffleSplit(X_train.shape[0], n_iter=10, test_size=0.2) 
+    classifier = GridSearchCV(estimator=estimator,cv=5, param_grid=param_grid, n_jobs=n_jobs) 
+    #Also note that we're feeding multiple neighbors to the GridSearch to try out. 
+    #We'll now fit the training dataset to this classifier 
+    classifier.fit(X_train[train_cols], y_train) 
+    #Let's look at the best estimator that was found by GridSearchCV print "Best Estimator learned through GridSearch" 
+    print (classifier.best_estimator_ )
+    print (classifier.best_params_ )
+    print (classifier.best_score_ )
+else:
+    # {'learning_rate': 0.05, 'max_depth': 4, 'max_features': 1.0, 'min_samples_leaf': 5, 'n_estimators': 221}
+    # 0.855131319451837
+    # {'learning_rate': 0.05, 'max_depth': 4, 'max_features': 0.25, 'min_samples_leaf': 5, 'n_estimators': 279}
+    # 0.86858088329903
+    # {'learning_rate': 0.025, 'max_depth': 5, 'max_features': 0.25, 'min_samples_leaf': 5, 'n_estimators': 301}
+    # 0.8718522939695451
+
+    model_gb = GradientBoostingRegressor(random_state=9261774,n_estimators=100)#,learning_rate=0.05, max_depth=4, max_features=0.25, min_samples_leaf= 5, n_estimators=279)
+    model_gb.fit(X_train[train_cols], y_train)
+    train_score_gb=model_gb.score(X_train[train_cols], y_train)
+    test_score_gb=model_gb.score(X_test[train_cols], y_test)
+    print('gb training score     : ', train_score_gb)
+    print('gb test score         : ', test_score_gb)
+
+    #before optimization
+    #gb training score     :  0.9648429174615337
+    #gb test score         :  0.8447637548701106
+
+    #after optimization
+    #gb training score     :  0.9802699819779025
+    #gb test score         :  0.8524618815557955
+
+
 
 #####
 ##### Create Submission
@@ -317,24 +367,35 @@ if True:
     submission_lr = pd.concat([submission_id,pred_lr], axis='columns', sort=False)
     sendtofile(excluded_dir,'predictions_lr.csv',submission_lr, verbose=True)
 
-    #get predictions
+    #random forest
     pred_y_rf=model_rf.predict(X_sub[train_cols])
     #tack the saved labes (y's) onto the preds into a data frame
     pred_rf=pd.DataFrame(pred_y_rf, columns=['SalePrice'])
     submission_rf = pd.concat([submission_id,pred_rf], axis='columns', sort=False)
     sendtofile(excluded_dir,'predictions_rf.csv',submission_rf, verbose=True)
 
+
+
+    #GradientBoost
+    
+    pred_y_gb=model_gb.predict(X_sub[train_cols])
+    #tack the saved labes (y's) onto the preds into a data frame
+    pred_gb=pd.DataFrame(pred_y_gb, columns=['SalePrice'])
+    submission_gb = pd.concat([submission_id,pred_gb], axis='columns', sort=False)
+    sendtofile(excluded_dir,'predictions_gb.csv',submission_gb, verbose=True)
+
+
+
     
     submission_lr_rf = pd.concat([submission_lr,pred_rf], axis='columns', sort=False)
-    submission_lr_rf.columns=['Id','SalePrice_LR', 'SalePrice_RF']
-    submission_lr_rf['SalePrice']=(submission_lr_rf['SalePrice_LR']+submission_lr_rf['SalePrice_RF'])/2
-    submission_lr_rf.drop('SalePrice_LR', axis=1, inplace=True)
-    submission_lr_rf.drop('SalePrice_RF', axis=1, inplace=True)
-    sendtofile(excluded_dir,'predictions_lr_rf.csv',submission_lr_rf, verbose=True)
+    submission_lr_rf_gb = pd.concat([submission_lr_rf,pred_gb], axis='columns', sort=False)
+    submission_lr_rf_gb.columns=['Id','SalePrice_LR', 'SalePrice_RF','SalePrice_GB']
+    submission_lr_rf_gb['SalePrice']=(submission_lr_rf_gb['SalePrice_LR']+submission_lr_rf_gb['SalePrice_RF']+submission_lr_rf_gb['SalePrice_GB'])/3
+    submission_lr_rf_gb.drop('SalePrice_LR', axis=1, inplace=True)
+    submission_lr_rf_gb.drop('SalePrice_RF', axis=1, inplace=True)
+    submission_lr_rf_gb.drop('SalePrice_GB', axis=1, inplace=True)
+    sendtofile(excluded_dir,'predictions_lr_rf_gb.csv',submission_lr_rf_gb, verbose=True)
 
-
-
-    #create the ensemble, simple avg of linear and rf
 
 print('\n\n*****')
 print('***** end of sript: make_preds_3.py')
@@ -345,4 +406,18 @@ print('*****')
 # lm test score         :  0.8136472479742833
 # rf training score     :  0.981845737882965
 # rf test score         :  0.8338866779653443
-# kaggel score         :
+# kaggel score          : 0.14019  * best yet
+
+
+# 2019-12-16 after removing year built, remodel year and garage year built
+# lm training score     :  0.9432573451774633
+# lm test score         :  0.8136472479742833
+# rf training score     :  0.981845737882965
+# rf test score         :  0.8338866779653443
+# gb training score     :  0.9648429174615337
+# gb test score         :  0.8447637548701106
+# kaggel score          :  0.13544  * best yet, this is (lr+rf+gb)/3 ensemble
+# i wonder if the lm or rf is holding me back, i will try ensemble of gb and lm, then gb and rf
+# lr and gb             :  0.14306
+# rf and gb             :  0.14183
+
