@@ -50,67 +50,145 @@ def get_decade(in_val):
 
 def CleanData(clean_me_df):
 
-
+    # get rid of the Id column
     clean_me_df.drop('Id', axis=1, inplace=True)
+
+
+    # deal with NaNs
+    if False:
+            nan_data = clean_me_df.isnull().sum().sort_values(ascending=False)
+            print(nan_data[nan_data > 0]/len(clean_me_df))
+
+    clean_me_df["IsRegularLotShape"] = (clean_me_df.LotShape == "Reg") * 1
+    clean_me_df["IsLandLevel"] = (clean_me_df.LandContour == "Lvl") * 1
+    clean_me_df["IsLandSlopeGntl"] = (clean_me_df.LandSlope == "Gtl") * 1
+    clean_me_df["IsElectricalSBrkr"] = (clean_me_df.Electrical == "SBrkr") * 1
+    clean_me_df["IsGarageDetached"] = (clean_me_df.GarageType == "Detchd") * 1
+    clean_me_df["IsPavedDrive"] = (clean_me_df.PavedDrive == "Y") * 1
+    clean_me_df["HasShed"] = (clean_me_df.MiscFeature == "Shed") * 1
+
+
+    clean_me_df.loc[clean_me_df.Neighborhood == 'NridgHt', "Neighborhood_Good"] = 1
+    clean_me_df.loc[clean_me_df.Neighborhood == 'Crawfor', "Neighborhood_Good"] = 1
+    clean_me_df.loc[clean_me_df.Neighborhood == 'StoneBr', "Neighborhood_Good"] = 1
+    clean_me_df.loc[clean_me_df.Neighborhood == 'Somerst', "Neighborhood_Good"] = 1
+    clean_me_df.loc[clean_me_df.Neighborhood == 'NoRidge', "Neighborhood_Good"] = 1
+    clean_me_df["Neighborhood_Good"].fillna(0, inplace=True)
+
+    # these 4 are enourmously NaN
+    #PoolQC          0.996574
+    #MiscFeature     0.964029
+    #Alley           0.932169
+    #Fence           0.804385
+    # drop the extrme NaN(s)
+    x=['PoolQC','MiscFeature','Alley','Fence']
+    for n in x:
+        clean_me_df.drop(n,axis=1, inplace=True)
+
+    #These are partially NaN  
+    #FireplaceQu     0.486468
+    clean_me_df['FireplaceQu'].fillna('NA', inplace=True)
+    
+    #LotFrontage     0.166495
     LotFrontage_mean = 0
     LotFrontage_mean = clean_me_df['LotFrontage'].mean()
     clean_me_df['LotFrontage'].fillna(LotFrontage_mean, inplace=True)
 
+    #GarageCond      0.054471
+    clean_me_df['GarageCond'].fillna('TA', inplace=True)
+    #GarageYrBlt     0.054471
+    temp_mean = clean_me_df['GarageYrBlt'].mean()
+    clean_me_df['GarageYrBlt'].fillna(temp_mean, inplace=True)
+    #GarageFinish    0.054471
+    clean_me_df['GarageFinish'].fillna('NA', inplace=True)    
+    #GarageQual      0.054471
+    clean_me_df['GarageQual'].fillna('NA', inplace=True)    
+    #GarageType      0.053786
+    clean_me_df['GarageType'].fillna('NA', inplace=True)    
+    #BsmtCond        0.028092
+    clean_me_df['BsmtCond'].fillna('NA', inplace=True)    
+    #BsmtExposure    0.028092
+    clean_me_df['BsmtExposure'].fillna('NA', inplace=True)    
+    #BsmtQual        0.027749
+    clean_me_df['BsmtQual'].fillna('NA', inplace=True)    
+    #BsmtFinType2    0.027407
+    clean_me_df['BsmtFinType2'].fillna('NA', inplace=True)    
+    #BsmtFinType1    0.027064
+    clean_me_df['BsmtFinType1'].fillna('NA', inplace=True)    
+    #MasVnrType      0.008222
+    clean_me_df['MasVnrType'].fillna('None', inplace=True)    
+    #MasVnrArea      0.007879
+    clean_me_df['MasVnrArea'].fillna(0, inplace=True)
+    #MSZoning        0.001370
+    clean_me_df['MSZoning'].fillna('RL', inplace=True)
+    #Utilities       0.000685
+    clean_me_df['Utilities'].fillna('AllPub', inplace=True)
+    #BsmtHalfBath    0.000685
+    clean_me_df['BsmtHalfBath'].fillna(0, inplace=True)
+    #BsmtFullBath    0.000685
+    clean_me_df['BsmtFullBath'].fillna(0, inplace=True)
+    #Functional      0.000685
+    clean_me_df['Functional'].fillna('Mod', inplace=True)
+    #Exterior1st     0.000343
+    clean_me_df['Exterior1st'].fillna('Plywood', inplace=True)
+    #TotalBsmtSF     0.000343
+    clean_me_df['TotalBsmtSF'].fillna(0, inplace=True)
+    #BsmtUnfSF       0.000343
+    clean_me_df['BsmtUnfSF'].fillna(0, inplace=True)
+    #BsmtFinSF2      0.000343
+    clean_me_df['BsmtFinSF2'].fillna(0, inplace=True)
+    #GarageArea      0.000343
+    clean_me_df['GarageArea'].fillna(0, inplace=True)
+    #KitchenQual     0.000343
+    clean_me_df['KitchenQual'].fillna('TA', inplace=True)
+    #GarageCars      0.000343
+    clean_me_df['GarageCars'].fillna(0, inplace=True)
+    #BsmtFinSF1      0.000343
+    clean_me_df['BsmtFinSF1'].fillna(0, inplace=True)
+    #Exterior2nd     0.000343
+    clean_me_df['Exterior2nd'].fillna('Plywood', inplace=True)
+    #SaleType        0.000343
+    clean_me_df['SaleType'].fillna('Oth', inplace=True)
+    #Electrical      0.000343    
+    clean_me_df['Electrical'].fillna('FuseA', inplace=True)
+    
+
+    # this didnt show up earlier as having NaN data, but out of an abundance of cauthion, make sure
     GrvLivArea_mean = 0
     GrvLivArea_mean = clean_me_df['GrLivArea'].mean()
     clean_me_df['GrLivArea'].fillna(GrvLivArea_mean, inplace=True)
     
     
 
+    #same, triple check we dont let a NaN through
     YearBullt_mean=0
     YearBullt_mean = clean_me_df['YearBuilt'].mean()
     clean_me_df['YearBuilt'].fillna(YearBullt_mean, inplace=True)    
-    clean_me_df['YearDecade'] = clean_me_df['YearBuilt'].astype(int).map(lambda x: get_decade(x))
-    clean_me_df['DecadesOld'] = 200-(2010 - clean_me_df['YearDecade'])
+    max_age = clean_me_df['YearBuilt'].max()
+    clean_me_df['HouseAge'] = 1/((max_age+1)-clean_me_df['YearBuilt'])
     clean_me_df.drop('YearBuilt', axis=1, inplace=True)
-    clean_me_df.drop('YearDecade', axis=1, inplace=True)    
+
 
     YearRemodAdd_mean=0
     YearRemodAdd_mean = clean_me_df['YearRemodAdd'].mean()
     clean_me_df['YearRemodAdd'].fillna(YearRemodAdd_mean, inplace=True)    
-    clean_me_df['YearRemodAddDecade'] = clean_me_df['YearRemodAdd'].astype(int).map(lambda x: get_decade(x))
-    clean_me_df['YearRemodAddDecOld'] = 200-(2010 - clean_me_df['YearRemodAddDecade'])
+    max_age = clean_me_df['YearRemodAdd'].max()
+    clean_me_df['RemodelAge'] = 1/((max_age+1)-clean_me_df['YearRemodAdd'])
+    clean_me_df['NewRemodel'] = (clean_me_df['YearRemodAdd']==clean_me_df['YrSold']) * 1
     clean_me_df.drop('YearRemodAdd', axis=1, inplace=True)
-    clean_me_df.drop('YearRemodAddDecade', axis=1, inplace=True)    
     
+
     GarageYrBlt_mean=0
     GarageYrBlt_mean = clean_me_df['GarageYrBlt'].mean()
     clean_me_df['GarageYrBlt'].fillna(GarageYrBlt_mean, inplace=True)    
-    clean_me_df['GarageYrBltDecade'] = clean_me_df['GarageYrBlt'].astype(int).map(lambda x: get_decade(x))
-    clean_me_df['GarageYrBltDecOld'] = 200-(2010 - clean_me_df['GarageYrBltDecade'])
-    clean_me_df.drop('GarageYrBlt', axis=1, inplace=True)
-    clean_me_df.drop('GarageYrBltDecade', axis=1, inplace=True)    
-    
+    max_age = clean_me_df['GarageYrBlt'].max()
+    clean_me_df['GarageAge'] = 1/((max_age+1)-clean_me_df['GarageYrBlt'])    
 
-    
-    
-    clean_me_df['Condition1'].fillna('Norm', inplace=True)
-    clean_me_df['Condition2'].fillna('Norm', inplace=True)
-    clean_me_df['Neighborhood'].fillna('NAmes', inplace=True) 
-    clean_me_df['GarageQual'].fillna('TA', inplace=True)    
-    clean_me_df['GarageCond'].fillna('TA', inplace=True)
-    clean_me_df['LotShape'].fillna('Reg', inplace=True)    
-    clean_me_df['LandContour'].fillna('Lvl', inplace=True) 
-    clean_me_df['LotConfig'].fillna('Inside', inplace=True)
-    clean_me_df['LandSlope'].fillna('Gtl', inplace=True)
-    clean_me_df['GarageCars'].fillna(0, inplace=True)
-    clean_me_df['GarageArea'].fillna(0, inplace=True)
-    clean_me_df['BsmtHalfBath'].fillna(0, inplace=True)
-    clean_me_df['BsmtFullBath'].fillna(0, inplace=True)
-    clean_me_df['BsmtFinSF1'].fillna(0, inplace=True)
-    clean_me_df['BsmtFinSF2'].fillna(0, inplace=True)
-    clean_me_df['BsmtUnfSF'].fillna(0, inplace=True)
-    clean_me_df['TotalBsmtSF'].fillna(0, inplace=True)
-    clean_me_df['MSZoning'].fillna('RL', inplace=True)
-    clean_me_df['MasVnrArea'].fillna(0, inplace=True)
+    clean_me_df['NewGarage'] = (clean_me_df['GarageYrBlt']==clean_me_df['YrSold']) * 1
+    clean_me_df.drop('GarageYrBlt', axis=1, inplace=True)    
 
-    #one hot encoding for all object types
-    x = clean_me_df.select_dtypes(include=np.object).columns.tolist()
+    #one hot encode these, the rest can be categorized
+    x=['MSSubClass','MSZoning','Street','LotShape','LandContour','LotConfig','LandSlope','Neighborhood','BldgType','HouseStyle','RoofStyle','RoofMatl','Exterior1st','Exterior2nd','MasVnrType','Foundation','Heating','GarageType','SaleType', 'SaleCondition']
     for n in x:
         df1 = pd.get_dummies(clean_me_df[n], prefix = n)
         clean_me_df = pd.concat([clean_me_df,df1], axis=1)
@@ -119,15 +197,54 @@ def CleanData(clean_me_df):
     for n in x:
         clean_me_df.drop(n,axis=1, inplace=True)
 
-    # engineered features
-    # total bathroom count
-    # BsmtFullBath + BsmtHalfBath * .5 + FullBath + HalfBath
-    # pricer per bathroom
-    # cleanme['GLVPerBath']=clean_me_df['GrLivArea']/BathroomCount
-    #YearRemodAdd
-    #GarageYrBlt
+
+    #categorizing
+    x = clean_me_df.select_dtypes(include=np.object).columns.tolist()
+    for n in x:
+        clean_me_df[n] = clean_me_df[n].astype('category')
+
+
+    #dataTypeSeries = pd.DataFrame(clean_me_df.dtypes)
+    #dataTypeSeries.columns=['DataType']
+    #print('Data type of each column of Dataframe :')
+    #print(dataTypeSeries[dataTypeSeries['DataType']=='category'])
 
     
+    #ExterQual|ExterCond|BsmtQual|BsmtCond|HeatingQC|KitchenQual|FireplaceQu|GarageQual|GarageCond
+    x = ['ExterQual', 'ExterCond', 'BsmtQual', 'BsmtCond', 'HeatingQC', 'KitchenQual', 'FireplaceQu', 'GarageQual', 'GarageCond']
+    for n in x:
+        clean_me_df[n] = clean_me_df[n].replace(dict(Ex=5, Gd=4, TA=3, Fa=2, NA=1, Po=0))
+
+
+    #Utilities
+    clean_me_df['Utilities'] = clean_me_df['Utilities'].replace(dict(AllPub=3,NoSewr=2, NoSeWa=1, ELO=0))
+    # |Condition1
+    clean_me_df['Condition1'] = clean_me_df['Condition1'].replace(dict(Artery=5, Feedr=4, Norm=3, RRNn=0, RRAn=0, PosN=3, PosA=2, RRNe=0, RRAe=0))
+    # |Condition2
+    clean_me_df['Condition2'] = clean_me_df['Condition2'].replace(dict(Artery=5, Feedr=4, Norm=3, RRNn=0, RRAn=0, PosN=3, PosA=2, RRNe=0, RRAe=0))
+    # BsmtExposure
+    clean_me_df['BsmtExposure'] = clean_me_df['BsmtExposure'].replace(dict(Gd=3, Av=2, Mn=1, No=0, NA=0))
+    # BsmtFinType1
+    clean_me_df['BsmtFinType1'] = clean_me_df['BsmtFinType1'].replace(dict(GLQ=5, ALQ=4, BLQ=3, Rec=2, LwQ=1, Unf=0, NA=0))
+    # BsmtFinType2
+    clean_me_df['BsmtFinType2'] = clean_me_df['BsmtFinType2'].replace(dict(GLQ=5, ALQ=4, BLQ=3, Rec=2, LwQ=1, Unf=0, NA=0))
+    # CentralAir
+    clean_me_df['CentralAir'] = clean_me_df['CentralAir'].replace(dict(Y=1, N=0))
+    # Electrical
+    clean_me_df['Electrical'] = clean_me_df['Electrical'].replace(dict(SBrkr=4,FuseA=3, FuseF=2, FuseP=1, Mix=0))
+    # Functional
+    clean_me_df['Functional'] = clean_me_df['Functional'].replace(dict(Typ=6, Min1=4, Min2=4, Mod=3, Maj1=2, Maj2=2, Sev=1, Sal=0))
+    # GarageFinish
+    clean_me_df['GarageFinish'] = clean_me_df['GarageFinish'].replace(dict(Fin=2, RFn=1, Unf=0, NA=0))
+    # PavedDrive
+    clean_me_df['PavedDrive'] = clean_me_df['PavedDrive'].replace(dict(Y=2, P=1, N=0))
+
+    clean_me_df.to_csv(os.path.join(excluded_dir, 'eval_models_5_' + 'mid_clean.csv'), index=False)
+
+    
+    # engineered features
+    # total bathroom count
+    clean_me_df['BathroomCount'] =  clean_me_df['BsmtFullBath'] + (clean_me_df['BsmtHalfBath'] * .5) + clean_me_df['FullBath'] + (clean_me_df['HalfBath'] * .5)
 
 
 
@@ -202,6 +319,8 @@ sendtofile(excluded_dir, 'combined.csv', combined, verbose=True)
 X_train = combined[combined['TRAIN']==1].copy()
 X_train.drop('TRAIN', axis=1, inplace=True)
 
+sendtofile(excluded_dir, 'X_train.csv', X_train, verbose=True)
+
 
 # test - use to evaluate model performance
 X_test = combined[combined['TRAIN']==0].copy()
@@ -212,51 +331,14 @@ X_sub = combined[combined['TRAIN']==-1].copy()
 X_sub.drop('TRAIN', axis=1, inplace=True)
 
 #all cols
-train_cols = ['MSSubClass', 'LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 
-'BsmtUnfSF', 'TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'LowQualFinSF', 'GrLivArea', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath', 
-'BedroomAbvGr', 'KitchenAbvGr', 'TotRmsAbvGrd', 'Fireplaces', 'GarageCars', 'GarageArea', 'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', 
-'3SsnPorch', 'ScreenPorch', 'PoolArea', 'MiscVal', 'MoSold', 'YrSold', 'MSZoning_C (all)', 'MSZoning_FV', 'MSZoning_RH', 'MSZoning_RL', 
-'MSZoning_RM', 'Street_Grvl', 'Street_Pave', 'Alley_Grvl', 'Alley_Pave', 'LotShape_IR1', 'LotShape_IR2', 'LotShape_IR3', 'LotShape_Reg', 
-'LandContour_Bnk', 'LandContour_HLS', 'LandContour_Low', 'LandContour_Lvl', 'Utilities_AllPub', 'Utilities_NoSeWa', 'LotConfig_Corner', 'LotConfig_CulDSac', 
-'LotConfig_FR2', 'LotConfig_FR3', 'LotConfig_Inside', 'LandSlope_Gtl', 'LandSlope_Mod', 'LandSlope_Sev', 'Neighborhood_Blmngtn', 'Neighborhood_Blueste', 
-'Neighborhood_BrDale', 'Neighborhood_BrkSide', 'Neighborhood_ClearCr', 'Neighborhood_CollgCr', 'Neighborhood_Crawfor', 'Neighborhood_Edwards', 
-'Neighborhood_Gilbert', 'Neighborhood_IDOTRR', 'Neighborhood_MeadowV', 'Neighborhood_Mitchel', 'Neighborhood_NAmes', 'Neighborhood_NPkVill', 
-'Neighborhood_NWAmes', 'Neighborhood_NoRidge', 'Neighborhood_NridgHt', 'Neighborhood_OldTown', 'Neighborhood_SWISU', 'Neighborhood_Sawyer', 
-'Neighborhood_SawyerW', 'Neighborhood_Somerst', 'Neighborhood_StoneBr', 'Neighborhood_Timber', 'Neighborhood_Veenker', 'Condition1_Artery', 
-'Condition1_Feedr', 'Condition1_Norm', 'Condition1_PosA', 'Condition1_PosN', 'Condition1_RRAe', 'Condition1_RRAn', 'Condition1_RRNe', 'Condition1_RRNn', 
-'Condition2_Artery', 'Condition2_Feedr', 'Condition2_Norm', 'Condition2_PosA', 'Condition2_PosN', 'Condition2_RRAe', 'Condition2_RRAn', 'Condition2_RRNn', 
-'BldgType_1Fam', 'BldgType_2fmCon', 'BldgType_Duplex', 'BldgType_Twnhs', 'BldgType_TwnhsE', 'HouseStyle_1.5Fin', 'HouseStyle_1.5Unf', 'HouseStyle_1Story', 
-'HouseStyle_2.5Fin', 'HouseStyle_2.5Unf', 'HouseStyle_2Story', 'HouseStyle_SFoyer', 'HouseStyle_SLvl', 'RoofStyle_Flat', 'RoofStyle_Gable', 'RoofStyle_Gambrel', 
-'RoofStyle_Hip', 'RoofStyle_Mansard', 'RoofStyle_Shed', 'RoofMatl_ClyTile', 'RoofMatl_CompShg', 'RoofMatl_Membran', 'RoofMatl_Metal', 'RoofMatl_Roll', 
-'RoofMatl_Tar&Grv', 'RoofMatl_WdShake', 'RoofMatl_WdShngl', 'Exterior1st_AsbShng', 'Exterior1st_AsphShn', 'Exterior1st_BrkComm', 'Exterior1st_BrkFace', 
-'Exterior1st_CBlock', 'Exterior1st_CemntBd', 'Exterior1st_HdBoard', 'Exterior1st_ImStucc', 'Exterior1st_MetalSd', 'Exterior1st_Plywood', 'Exterior1st_Stone', 
-'Exterior1st_Stucco', 'Exterior1st_VinylSd', 'Exterior1st_Wd Sdng', 'Exterior1st_WdShing', 'Exterior2nd_AsbShng', 'Exterior2nd_AsphShn', 'Exterior2nd_Brk Cmn', 
-'Exterior2nd_BrkFace', 'Exterior2nd_CBlock', 'Exterior2nd_CmentBd', 'Exterior2nd_HdBoard', 'Exterior2nd_ImStucc', 'Exterior2nd_MetalSd', 'Exterior2nd_Other', 
-'Exterior2nd_Plywood', 'Exterior2nd_Stone', 'Exterior2nd_Stucco', 'Exterior2nd_VinylSd', 'Exterior2nd_Wd Sdng', 'Exterior2nd_Wd Shng', 'MasVnrType_BrkCmn', 
-'MasVnrType_BrkFace', 'MasVnrType_None', 'MasVnrType_Stone', 'ExterQual_Ex', 'ExterQual_Fa', 'ExterQual_Gd', 'ExterQual_TA', 'ExterCond_Ex', 'ExterCond_Fa', 
-'ExterCond_Gd', 'ExterCond_Po', 'ExterCond_TA', 'Foundation_BrkTil', 'Foundation_CBlock', 'Foundation_PConc', 'Foundation_Slab', 'Foundation_Stone', 
-'Foundation_Wood', 'BsmtQual_Ex', 'BsmtQual_Fa', 'BsmtQual_Gd', 'BsmtQual_TA', 'BsmtCond_Fa', 'BsmtCond_Gd', 'BsmtCond_Po', 'BsmtCond_TA', 'BsmtExposure_Av', 
-'BsmtExposure_Gd', 'BsmtExposure_Mn', 'BsmtExposure_No', 'BsmtFinType1_ALQ', 'BsmtFinType1_BLQ', 'BsmtFinType1_GLQ', 'BsmtFinType1_LwQ', 'BsmtFinType1_Rec', 
-'BsmtFinType1_Unf', 'BsmtFinType2_ALQ', 'BsmtFinType2_BLQ', 'BsmtFinType2_GLQ', 'BsmtFinType2_LwQ', 'BsmtFinType2_Rec', 'BsmtFinType2_Unf', 'Heating_Floor', 
-'Heating_GasA', 'Heating_GasW', 'Heating_Grav', 'Heating_OthW', 'Heating_Wall', 'HeatingQC_Ex', 'HeatingQC_Fa', 'HeatingQC_Gd', 'HeatingQC_Po', 'HeatingQC_TA', 
-'CentralAir_N', 'CentralAir_Y', 'Electrical_FuseA', 'Electrical_FuseF', 'Electrical_FuseP', 'Electrical_Mix', 'Electrical_SBrkr', 'KitchenQual_Ex', 'KitchenQual_Fa', 
-'KitchenQual_Gd', 'KitchenQual_TA', 'Functional_Maj1', 'Functional_Maj2', 'Functional_Min1', 'Functional_Min2', 'Functional_Mod', 'Functional_Sev', 'Functional_Typ', 
-'FireplaceQu_Ex', 'FireplaceQu_Fa', 'FireplaceQu_Gd', 'FireplaceQu_Po', 'FireplaceQu_TA', 'GarageType_2Types', 'GarageType_Attchd', 'GarageType_Basment', 
-'GarageType_BuiltIn', 'GarageType_CarPort', 'GarageType_Detchd', 'GarageFinish_Fin', 'GarageFinish_RFn', 'GarageFinish_Unf', 'GarageQual_Ex', 'GarageQual_Fa', 
-'GarageQual_Gd', 'GarageQual_Po', 'GarageQual_TA', 'GarageCond_Ex', 'GarageCond_Fa', 'GarageCond_Gd', 'GarageCond_Po', 'GarageCond_TA', 'PavedDrive_N', 
-'PavedDrive_P', 'PavedDrive_Y', 'PoolQC_Ex', 'PoolQC_Fa', 'PoolQC_Gd', 'Fence_GdPrv', 'Fence_GdWo', 'Fence_MnPrv', 'Fence_MnWw', 'MiscFeature_Gar2', 
-'MiscFeature_Othr', 'MiscFeature_Shed', 'MiscFeature_TenC', 'SaleType_COD', 'SaleType_CWD', 'SaleType_Con', 'SaleType_ConLD', 'SaleType_ConLI', 'SaleType_ConLw', 
-'SaleType_New', 'SaleType_Oth', 'SaleType_WD', 'SaleCondition_Abnorml', 'SaleCondition_AdjLand', 'SaleCondition_Alloca', 'SaleCondition_Family', 
-'SaleCondition_Normal', 'SaleCondition_Partial']#,'DecadesOld','YearRemodAddDecOld','GarageYrBltDecOld']
+train_cols = ['LotFrontage','LotArea','Utilities','Condition1','Condition2','OverallQual','OverallCond','MasVnrArea','ExterQual','ExterCond','BsmtQual','BsmtCond','BsmtExposure','BsmtFinType1','BsmtFinSF1','BsmtFinType2','BsmtFinSF2','BsmtUnfSF','TotalBsmtSF','HeatingQC','CentralAir','Electrical','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea','BsmtFullBath','BsmtHalfBath','FullBath','HalfBath','BedroomAbvGr','KitchenAbvGr','KitchenQual','TotRmsAbvGrd','Functional','Fireplaces','FireplaceQu','GarageFinish','GarageCars','GarageArea','GarageQual','GarageCond','PavedDrive','WoodDeckSF','OpenPorchSF','EnclosedPorch','3SsnPorch','ScreenPorch','PoolArea','MiscVal','MoSold','YrSold','HouseAge','RemodelAge','NewRemodel','GarageAge','NewGarage','MSSubClass_20','MSSubClass_30','MSSubClass_40','MSSubClass_45','MSSubClass_50','MSSubClass_60','MSSubClass_70','MSSubClass_75','MSSubClass_80','MSSubClass_85','MSSubClass_90','MSSubClass_120','MSSubClass_150','MSSubClass_160','MSSubClass_180','MSSubClass_190','MSZoning_C (all)','MSZoning_FV','MSZoning_RH','MSZoning_RL','MSZoning_RM','Street_Grvl','Street_Pave','LotShape_IR1','LotShape_IR2','LotShape_IR3','LotShape_Reg','LandContour_Bnk','LandContour_HLS','LandContour_Low','LandContour_Lvl','LotConfig_Corner','LotConfig_CulDSac','LotConfig_FR2','LotConfig_FR3','LotConfig_Inside','LandSlope_Gtl','LandSlope_Mod','LandSlope_Sev','Neighborhood_Blmngtn','Neighborhood_Blueste','Neighborhood_BrDale','Neighborhood_BrkSide','Neighborhood_ClearCr','Neighborhood_CollgCr','Neighborhood_Crawfor','Neighborhood_Edwards','Neighborhood_Gilbert','Neighborhood_IDOTRR','Neighborhood_MeadowV','Neighborhood_Mitchel','Neighborhood_NAmes','Neighborhood_NPkVill','Neighborhood_NWAmes','Neighborhood_NoRidge','Neighborhood_NridgHt','Neighborhood_OldTown','Neighborhood_SWISU','Neighborhood_Sawyer','Neighborhood_SawyerW','Neighborhood_Somerst','Neighborhood_StoneBr','Neighborhood_Timber','Neighborhood_Veenker','BldgType_1Fam','BldgType_2fmCon','BldgType_Duplex','BldgType_Twnhs','BldgType_TwnhsE','HouseStyle_1.5Fin','HouseStyle_1.5Unf','HouseStyle_1Story','HouseStyle_2.5Fin','HouseStyle_2.5Unf','HouseStyle_2Story','HouseStyle_SFoyer','HouseStyle_SLvl','RoofStyle_Flat','RoofStyle_Gable','RoofStyle_Gambrel','RoofStyle_Hip','RoofStyle_Mansard','RoofStyle_Shed','RoofMatl_ClyTile','RoofMatl_CompShg','RoofMatl_Membran','RoofMatl_Metal','RoofMatl_Roll','RoofMatl_Tar&Grv','RoofMatl_WdShake','RoofMatl_WdShngl','Exterior1st_AsbShng','Exterior1st_AsphShn','Exterior1st_BrkComm','Exterior1st_BrkFace','Exterior1st_CBlock','Exterior1st_CemntBd','Exterior1st_HdBoard','Exterior1st_ImStucc','Exterior1st_MetalSd','Exterior1st_Plywood','Exterior1st_Stone','Exterior1st_Stucco','Exterior1st_VinylSd','Exterior1st_Wd Sdng','Exterior1st_WdShing','Exterior2nd_AsbShng','Exterior2nd_AsphShn','Exterior2nd_Brk Cmn','Exterior2nd_BrkFace','Exterior2nd_CBlock','Exterior2nd_CmentBd','Exterior2nd_HdBoard','Exterior2nd_ImStucc','Exterior2nd_MetalSd','Exterior2nd_Other','Exterior2nd_Plywood','Exterior2nd_Stone','Exterior2nd_Stucco','Exterior2nd_VinylSd','Exterior2nd_Wd Sdng','Exterior2nd_Wd Shng','MasVnrType_BrkCmn','MasVnrType_BrkFace','MasVnrType_None','MasVnrType_Stone','Foundation_BrkTil','Foundation_CBlock','Foundation_PConc','Foundation_Slab','Foundation_Stone','Foundation_Wood','Heating_Floor','Heating_GasA','Heating_GasW','Heating_Grav','Heating_OthW','Heating_Wall','GarageType_2Types','GarageType_Attchd','GarageType_Basment','GarageType_BuiltIn','GarageType_CarPort','GarageType_Detchd','GarageType_NA','SaleType_COD','SaleType_CWD','SaleType_Con','SaleType_ConLD','SaleType_ConLI','SaleType_ConLw','SaleType_New','SaleType_Oth','SaleType_WD','SaleCondition_Abnorml','SaleCondition_AdjLand','SaleCondition_Alloca','SaleCondition_Family','SaleCondition_Normal','SaleCondition_Partial','Electrical','BathroomCount','IsRegularLotShape','IsLandLevel','IsLandSlopeGntl','IsElectricalSBrkr','IsPavedDrive','IsGarageDetached','HasShed','Neighborhood_Good']
 
 
-# I should probably cull down the vars, and do some feature engineering, WIP
 
 
 #####
 ##### FIT THE MODELS
 #####
-
 
 
 
@@ -274,23 +356,68 @@ if False:
 
 
 
+if False:
+    nan_data = X_train[train_cols].isnull().sum().sort_values(ascending=False)
+    print('\n\ndouble check the NaN(s)')
+    print(nan_data[nan_data > 0]/len(X_train[train_cols]))
+    print("\n\n")
+
 
 model_lr.fit(X_train[train_cols], y_train)
 train_score_lm=model_lr.score(X_train[train_cols], y_train)
 
 # Random forrest
-model_rf = RandomForestRegressor(random_state=9261774,max_features=87, n_estimators=171)
 if False:
-    print('model_rf Parameters currently in use:\n')
-    print(model_rf.get_params())
+    from sklearn.model_selection import RandomizedSearchCV
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+    # Number of features to consider at every split
+    max_features = ['auto', 'sqrt']
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(10, 110, num = 11)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [2, 5, 10]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1, 2, 4]
+    # Method of selecting samples for training each tree
+    bootstrap = [True, False]
+    # Create the random grid
+    random_grid = {'n_estimators': n_estimators,
+                'max_features': max_features,
+                'max_depth': max_depth,
+                'min_samples_split': min_samples_split,
+                'min_samples_leaf': min_samples_leaf,
+                'bootstrap': bootstrap}
+    print("\nheres your pram random_grid")
+    print(random_grid)
+    print("\n")
 
-model_rf.fit(X_train[train_cols], y_train)
 
-train_score_rf=model_rf.score(X_train[train_cols], y_train)
-    
+    # Use the random grid to search for best hyperparameters
+    # First create the base model to tune
+    rf = RandomForestRegressor(random_state=9261774)
+    # Random search of parameters, using 3 fold cross validation, 
+    # search across 100 different combinations, and use all available cores
+    rf_random = RandomizedSearchCV(estimator = rf, param_distributions = random_grid, n_iter = 100, cv = 3, random_state=9261774, n_jobs = -1)
+    # Fit the random search model
+    rf_random.fit(X_train[train_cols], y_train)
 
-test_score_lm=model_lr.score(X_test[train_cols], y_test)
-test_score_rf=model_rf.score(X_test[train_cols], y_test)
+    print('\n\nBEST ESTIMATOR')
+    print (rf_random.best_estimator_ )
+    print('\n\nBEST PARAMS')
+    print (rf_random.best_params_ )
+    print('\n\nBEST SCORE')
+    print (rf_random.best_score_ )
+    print("\n\n")
+    print(1/0)
+else:
+    #{'n_estimators': 1200, 'min_samples_split': 2, 'min_samples_leaf': 1, 'max_features': 'sqrt', 'max_depth': None, 'bootstrap': False}
+    model_rf = RandomForestRegressor(random_state=9261774, n_estimators=1200, min_samples_split=2, min_samples_leaf=1, max_features='sqrt', max_depth=None, bootstrap=False)
+    model_rf.fit(X_train[train_cols], y_train)
+    train_score_rf=model_rf.score(X_train[train_cols], y_train)
+    test_score_lm=model_lr.score(X_test[train_cols], y_test)
+    test_score_rf=model_rf.score(X_test[train_cols], y_test)
 
 
 
@@ -303,31 +430,62 @@ print('rf training score     : ', train_score_rf)
 print('rf test score         : ', test_score_rf)
 
 
-#set to True if you want to play with optimization
+#GradientBoostingRegressor
+# set to True if you want to play with optimization
 # set to False when ready to run
 if False:
-    param_grid={
-        'n_estimators':[301, 279], 
-        'learning_rate': [0.05, 0.025],# , 0.01],
-        'max_depth':[3, 4, 5], 
-        'min_samples_leaf':[5],#9,17], 
-        'max_features':[0.25] 
-        } 
-    n_jobs=-1 
+    from sklearn.model_selection import RandomizedSearchCV
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start = 200, stop = 2000, num = 10)]
+    # Number of features to consider at every split
+    max_features = ['auto', 'sqrt', 'log2']
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(3, 103, num = 11)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [2, 5, 10]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1, 2, 4]
+    learning_rate = [0.01, 0.025, 0.05, 0.10]
+    # Method of selecting samples for training each tree
+    bootstrap = [True, False]
+
+    # Create the random grid
+    random_grid = {'n_estimators': n_estimators,
+                'max_features': max_features,
+                'learning_rate': learning_rate,
+                'max_depth': max_depth,
+                'min_samples_split': min_samples_split,
+                'min_samples_leaf': min_samples_leaf}
+    print("\nheres your param random_grid")
+    print(random_grid)
+    print("\n")
 
 
-    #print("Feature Importances")
-    #print (model_gb.feature_importances_) 
-    estimator = GradientBoostingRegressor(random_state=9261774) 
-    # cv = ShuffleSplit(X_train.shape[0], n_iter=10, test_size=0.2) 
-    classifier = GridSearchCV(estimator=estimator,cv=5, param_grid=param_grid, n_jobs=n_jobs) 
-    #Also note that we're feeding multiple neighbors to the GridSearch to try out. 
-    #We'll now fit the training dataset to this classifier 
-    classifier.fit(X_train[train_cols], y_train) 
-    #Let's look at the best estimator that was found by GridSearchCV print "Best Estimator learned through GridSearch" 
-    print (classifier.best_estimator_ )
-    print (classifier.best_params_ )
-    print (classifier.best_score_ )
+    # Use the random grid to search for best hyperparameters
+    # First create the base model to tune
+    gb = GradientBoostingRegressor(random_state=9261774)
+    #print(gb.get_params().keys())
+    
+
+    # Random search of parameters, using 3 fold cross validation, 
+    # search across 100 different combinations, and use all available cores
+    gb_random = RandomizedSearchCV(estimator = gb, param_distributions = random_grid, n_iter = 100, cv = 3,random_state=9261774, n_jobs = -1)
+    # Fit the random search model
+    gb_random.fit(X_train[train_cols], y_train)
+
+  
+
+    print('\n\nBEST ESTIMATOR')
+    print (gb_random.best_estimator_ )
+    print('\n\nBEST PARAMS')
+    print (gb_random.best_params_ )
+    print('\n\nBEST SCORE')
+    print (gb_random.best_score_ )
+    print("\n\n")
+    print(1/0)    
+
+
 else:
     # {'learning_rate': 0.05, 'max_depth': 4, 'max_features': 1.0, 'min_samples_leaf': 5, 'n_estimators': 221}
     # 0.855131319451837
@@ -336,8 +494,35 @@ else:
     # {'learning_rate': 0.025, 'max_depth': 5, 'max_features': 0.25, 'min_samples_leaf': 5, 'n_estimators': 301}
     # 0.8718522939695451
 
-    model_gb = GradientBoostingRegressor(random_state=9261774,n_estimators=100)#,learning_rate=0.05, max_depth=4, max_features=0.25, min_samples_leaf= 5, n_estimators=279)
+    # {'learning_rate': 0.025, 'max_depth': 5, 'max_features': 0.25, 'min_samples_leaf': 5, 'n_estimators': 319}
+    # 0.8737418819950483
+    #BEST PARAMS
+    #{'n_estimators': 2000, 'min_samples_split': 2, 'min_samples_leaf': 2, 'max_features': 'sqrt', 'max_depth': 3, 'learning_rate': 0.05}
+    model_gb = GradientBoostingRegressor(random_state=9261774,learning_rate=0.05, max_depth=5,min_samples_split=2, max_features="sqrt", min_samples_leaf=2, n_estimators=2000)
     model_gb.fit(X_train[train_cols], y_train)
+    #print("Feature Importances")
+    #model_gb_fi = model_gb.feature_importances_
+    #print (model_gb_fi) 
+    
+    #
+    # feats = {} # a dict to hold feature_name: feature_importance
+    # for feature, importance in zip(X_train[train_cols], model_gb.feature_importances_):
+    #     feats[feature] = importance #add the name/value pair 
+    # importances = pd.DataFrame.from_dict(feats, orient='index').rename(columns={0: 'Gini-importance'})
+    # sendtofile(excluded_dir,'importances.csv',importances, verbose=True)
+
+    important_features = pd.Series(data=model_gb.feature_importances_,index=X_train[train_cols].columns)
+    important_features.sort_values(ascending=False,inplace=True)
+   
+    pd.DataFrame(important_features).to_csv(os.path.join(excluded_dir, 'eval_models_5_' + 'important_features.csv'), index=True)
+    
+
+
+
+
+
+ 
+
     train_score_gb=model_gb.score(X_train[train_cols], y_train)
     test_score_gb=model_gb.score(X_test[train_cols], y_test)
     print('gb training score     : ', train_score_gb)
@@ -421,3 +606,55 @@ print('*****')
 # lr and gb             :  0.14306
 # rf and gb             :  0.14183
 
+# at this point, who is my worst performer?
+# gb naked              :  0.14286
+# lr naked              :
+# rf naked              :  
+
+
+# with reduced cols
+#lm training score     :  0.8620923437395487
+#lm test score         :  0.7973413280413619
+#rf training score     :  0.9813814843665337
+#rf test score         :  0.8333387647243606
+#gb training score     :  0.9691449480278986
+#gb test score         :  0.8488831553891795
+# kaggle score         :  0.13191 * best yet.  2286/5771
+
+
+# after the rework, about a dozen categorized vars, a dozen or so one hot encoded
+# and a small number of engineered features
+
+#lm training score     :  0.9276846001055292
+#lm test score         :  0.8202419903039461
+#rf training score     :  0.9999999988909597
+#rf test score         :  0.8320806286361078
+#gb training score     :  0.9823046833398068
+#gb test score         :  0.8591227090039709
+#kaggle score          :  0.12913 * best yet!!!!!
+
+
+# add a few features, hasshed, garage detacthed, etc...
+#lm training score     :  0.9279986240136897
+#lm test score         :  0.8163988006927535
+#rf training score     :  0.9999999992716783
+#rf test score         :  0.8352411778378424
+#gb training score     :  0.981876656214923
+#gb test score         :  0.8510200830718281
+
+# added good neighborhood flag
+#lm training score     :  0.9279986240136897
+#lm test score         :  0.8163988006926306
+#rf training score     :  0.999999998212071
+#rf test score         :  0.8432474979151797
+#gb training score     :  0.9834801325072335
+#gb test score         :  0.8753089279837877
+
+
+# re did the grid search to tak einto account the new features!
+#lm training score     :  0.9279986240136897
+#lm test score         :  0.8163988006926306
+#rf training score     :  0.999999998212071
+#rf test score         :  0.8432474979151797
+#gb training score     :  0.9999557988562655  ?over fitting per chance???
+#gb test score         :  0.8686661725525482
