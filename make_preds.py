@@ -24,7 +24,7 @@ bVerbose = False
 
 
 my_test_size=0.1    # when ready to make the final sub
-my_test_size=0.30   # normal training eval
+#my_test_size=0.30   # normal training eval
 
 working_dir=os.getcwd()
 excluded_dir = os.path.join(working_dir, 'excluded') # working_dir + '\excluded'
@@ -375,23 +375,18 @@ sendtofile(excluded_dir,"train_data-after.csv",train_data, verbose=True)
 #print(1/0)
 # find the outliers
 
-if False:
-    fig, axes = plt.subplots(ncols=5, nrows=2, figsize=(16, 4))
-    axes = np.ravel(axes)
-    col_name = ['GrLivArea','TotalBsmtSF','1stFlrSF','BsmtFinSF1','LotArea']
-    for i, c in zip(range(5), col_name):
-        train_data.plot.scatter(ax=axes[i], x=c, y='SalePrice', sharey=True, colorbar=False, c='r')
-
-    plt.show()
-    print(1/0)
-
+print('\ntrain_data.shape before       :', train_data.shape)
 train_data = train_data[train_data['GrLivArea'] < 4000]
 train_data = train_data[train_data['LotArea'] < 100000]
 train_data = train_data[train_data['TotalBsmtSF'] < 3000]
-train_data = train_data[train_data['1stFlrSF'] < 2500]
-train_data = train_data[train_data['BsmtFinSF1'] < 2000]
-
-
+train_data = train_data[train_data['1stFlrSF'] < 4000]
+train_data = train_data[train_data['BsmtFinSF1'] < 3000]
+train_data = train_data[train_data['MasVnrArea'] < 4000]
+train_data = train_data[train_data['TotalBsmtSF'] < 5000]
+train_data = train_data[train_data['TotRmsAbvGrd'] < 13]
+train_data = train_data[train_data['GarageArea'] < 1200]
+train_data = train_data[train_data['LotFrontage'] < 300]
+print('train_data.shape after       :', train_data.shape)
 
 # stratified shuffle split
 # basically stratify the data by Gross Living Area
@@ -763,10 +758,10 @@ if True and True:
     submission_lr_rf_gb_lgbm.columns=['Id','SalePrice_LR', 'SalePrice_RF','SalePrice_GB', 'SalePrice_LGBM']
     # weight the submisisons 10/20/20/50 giving least to lr and most to lgbm
     submission_lr_rf_gb_lgbm['SalePrice']=(
-        submission_lr_rf_gb_lgbm['SalePrice_LR'] * 0.10 +
+        submission_lr_rf_gb_lgbm['SalePrice_LR'] * 0.20 +
         submission_lr_rf_gb_lgbm['SalePrice_RF'] * 0.20 +
         submission_lr_rf_gb_lgbm['SalePrice_GB'] * 0.20 + 
-        submission_lr_rf_gb_lgbm['SalePrice_LGBM'] * 0.50
+        submission_lr_rf_gb_lgbm['SalePrice_LGBM'] * 0.40
         )
     sendtofile(excluded_dir,'predictions_lr_rf_gb_lgbm(pre-finalized).csv',submission_lr_rf_gb_lgbm, verbose=True)
     submission_lr_rf_gb_lgbm.drop('SalePrice_LR', axis=1, inplace=True)
@@ -792,7 +787,7 @@ print('\n\n')
 #   boxplot the GrLivArea (outliers))
 # 
 # Data cleanup
-#   outlier detection and removal
+#   outlier detection and removal 
 #   one hot encoding
 #   categorization
 #   light feature engineering, count bathrooms, add up overall conditoon and quality

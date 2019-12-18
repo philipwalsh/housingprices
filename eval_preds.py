@@ -277,9 +277,24 @@ def CleanData(clean_me_df):
 
     # done with this function
 
+
+
+
+
     return clean_me_df
 
 
+
+
+def find_outliers_with_individual_plots(df):
+    col_names = df.select_dtypes([np.number]).columns
+    for n in col_names:
+        
+        plt.scatter(df[n],df['SalePrice'])
+        plt.title(n)
+        plt.show()
+        
+        plt.close()
 
 
 ##
@@ -291,23 +306,23 @@ train_data = pd.read_csv('excluded/train_full.csv', low_memory=False)
 sub_data = pd.read_csv('excluded/test_full.csv', low_memory=False)
 
 
-# find the outliers
 if False:
-    fig, axes = plt.subplots(ncols=5, nrows=2, figsize=(16, 4))
-    axes = np.ravel(axes)
-    col_name = ['GrLivArea','TotalBsmtSF','1stFlrSF','BsmtFinSF1','LotArea']
-    for i, c in zip(range(5), col_name):
-        train_data.plot.scatter(ax=axes[i], x=c, y='SalePrice', sharey=True, colorbar=False, c='r')
-
-    plt.show()
+    find_outliers_with_individual_plots(train_data)
     print(1/0)
-
 
 train_data = train_data[train_data['GrLivArea'] < 4000]
 train_data = train_data[train_data['LotArea'] < 100000]
 train_data = train_data[train_data['TotalBsmtSF'] < 3000]
-train_data = train_data[train_data['1stFlrSF'] < 2500]
-train_data = train_data[train_data['BsmtFinSF1'] < 2000]
+train_data = train_data[train_data['1stFlrSF'] < 4000]
+train_data = train_data[train_data['BsmtFinSF1'] < 3000]
+train_data = train_data[train_data['MasVnrArea'] < 4000]
+train_data = train_data[train_data['TotalBsmtSF'] < 5000]
+train_data = train_data[train_data['TotRmsAbvGrd'] < 13]
+train_data = train_data[train_data['GarageArea'] < 1200]
+train_data = train_data[train_data['LotFrontage'] < 300]
+
+
+
 
 
 # stratified shuffle split
@@ -325,6 +340,9 @@ split = StratifiedShuffleSplit(n_splits=1, test_size=my_test_size, random_state=
 for train_index, test_index in split.split(train_data, train_data['living_area_cat']):
     X_train = train_data.iloc[train_index].copy() # this is the training data
     X_test = train_data.iloc[test_index].copy()   # this is the hold out, the protion of the training i will use for testing
+
+
+
 
 # set up the y aka the label
 y_train = X_train['SalePrice']
@@ -351,17 +369,23 @@ X_test['TRAIN']=0           # 0 indicates its hold-out
 sub_data['TRAIN']=-1        # -1 for the submissions data
 
 
+
+
 # combine it all together
 combined=pd.concat([X_train, X_test, sub_data])
 #####
 #####  Clean The Data
 #####
-
-
  
+
 
 # this will do the heavy lifting removing NaN(s), dropping columns, one hot encoding and feature engineering
 combined = CleanData(combined)
+
+
+
+
+
 
 # sendtofile(excluded_dir, 'combined.csv', combined, verbose=True)
 
