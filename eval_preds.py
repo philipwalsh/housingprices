@@ -579,9 +579,11 @@ if True:
     MSE = mean_squared_error(expected[:5], predicted[:5])
     print('\n\nMSE', MSE)
     
-    plt.scatter(expected, predicted)
+    plt.plot([0,800000],[0,800000])
+    plt.scatter( predicted, expected)
+    
     plt.show()
-
+    print(1/0)
     if False:
         ###
         ### Random Forest
