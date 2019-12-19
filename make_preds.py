@@ -39,7 +39,6 @@ if bVerbose:
     print('\nworking dir   :', working_dir)
 
 
-
 #print('saving X_sub ...', sendtofile(excluded_dir,'submisison_data(cleaned).csv',X_sub))
 def sendtofile(outdir, filename, df, verbose=False):
     script_name='make_preds_'
@@ -779,7 +778,7 @@ print('\n\n')
 
 
 # project wrap up
-# at the conclusion of this project my best kaggle score remains .12700 
+# at the conclusion of this project my best kaggle score is 0.12593 
 # I used various resources along the way, mostly books and website tips and tricks from others that have scored well on this kaggle competition
 #
 # Techniques used in this challenge
