@@ -4,10 +4,12 @@
 # file    : make_preds_log.py
 #         : philip walsh
 #         : philipwalsh.ds@gmail.com
-#         : 2019-12-18
-
+#         : 2019-12-21
 # testing to see if log(SalePrice) helps the performance
-
+# added script name variable so i dont have to worry about hard coding that in
+# the sendto file or the opeing and closing print blocks
+# if i copy/paste the file to start another file
+#
 import numpy as np
 import pandas as pd
 import os
